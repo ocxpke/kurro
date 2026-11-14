@@ -143,6 +143,25 @@ const reviewers = (company) => (company ? 'profesionales' : 'empresas');
  * With a key in config.js and a signed-in user, the screens read and write the database
  * through db.js. Otherwise they use the demo data above. */
 const live = () => !!(KDB.enabled && KDB.me && KDB.me.details);
+// Not signed in while Supabase is configured: real open jobs in Descubrir, sign-up prompts elsewhere
+const guest = () => !!(KDB.enabled && !KDB.me);
+
+// Sign-up prompt used by the guest screens
+function guestHTML(icon, title, text) {
+  return `<div class="guest-cta">
+    <div class="guest-icon">${icon}</div>
+    <h3>${title}</h3>
+    <p class="muted">${text}</p>
+    <div class="job-actions">
+      <button class="btn" data-signup>Crear cuenta</button>
+      <button class="btn ghost" data-auth>Entrar</button>
+    </div>
+  </div>`;
+}
+function bindGuest(root) {
+  $$('[data-signup]', root).forEach((b) => b.onclick = () => openAuth('signup', b.dataset.signup || undefined));
+  $$('[data-auth]', root).forEach((b) => b.onclick = () => openAuth('login'));
+}
 const CAT_LOOK = {
   'hosteleria-gastronomia': { offer: '🍽️', worker: '🧑‍🍳', bg: 'var(--c-warm)' },
   'artesania': { offer: '🏺', worker: '🧑‍🎨', bg: 'var(--c-sage)' },
@@ -224,17 +243,21 @@ function ratingSummaryHTML(x, company) {
   <p class="trust"><span>✔</span><span>Reseñas anónimas y verificadas: solo opina quien ha trabajado ${company ? 'con esta empresa' : 'con este profesional'}. <b>${x.repeat} % repetiría.</b></span></p>`;
 }
 
-const source = () => (live() ? state.liveDeck : state.role === 'worker' ? OFFERS : WORKERS);
+const source = () => (live() || guest() ? state.liveDeck : state.role === 'worker' ? OFFERS : WORKERS);
 const findItem = (id) => [...state.liveDeck, ...OFFERS, ...WORKERS].find((x) => x.id === id);
 
-// Reload the swipe deck from the database (live mode only)
+// Reload the swipe deck from the database (signed in, or guest browsing open jobs)
 async function loadLiveDeck() {
-  if (!live()) return;
+  if (!live() && !guest()) return;
+  state.deckLoading = true;
+  renderDeck();
   try {
-    state.liveDeck = KDB.me.role === 'worker'
+    if (guest()) state.liveDeck = (await KDB.discoverAds()).map(offerCard);
+    else state.liveDeck = KDB.me.role === 'worker'
       ? (await KDB.discoverAds()).map(offerCard)
       : (await KDB.discoverWorkers()).map(workerCard);
   } catch (e) { dbError(e); state.liveDeck = []; }
+  state.deckLoading = false;
   renderDeck();
 }
 
@@ -248,13 +271,27 @@ function pool() {
 /* ---------- Deck ---------- */
 function renderDeck() {
   const deck = $('#deck');
-  const items = pool();
   deck.innerHTML = '';
+  // Guests browse jobs; professionals' profiles are only for signed-in companies
+  if (guest() && state.role === 'company') {
+    deck.innerHTML = `<div class="empty">${guestHTML('🔎', 'Encuentra profesionales de la zona',
+      'Crea una cuenta de empresa para ver perfiles, valoraciones y disponibilidad, y para publicar tus anuncios.')}</div>`;
+    $$('[data-signup]', deck).forEach((b) => { b.dataset.signup = 'company'; });
+    return bindGuest(deck);
+  }
+  if (state.deckLoading && !state.liveDeck.length) {
+    deck.innerHTML = '<div class="empty"><p class="muted">Cargando ofertas…</p></div>';
+    return;
+  }
+  const items = pool();
   if (!items.length) {
+    const fromDb = live() || guest();
     deck.innerHTML = `<div class="empty"><div><div style="font-size:3rem">🌊</div>
-      <p>No hay más ${state.role === 'worker' ? 'ofertas' : 'profesionales'} con estos filtros.</p>
-      <button class="btn" id="resetDeck">${live() ? 'Buscar de nuevo' : 'Volver a empezar'}</button></div></div>`;
-    $('#resetDeck').onclick = () => { state.seen.clear(); live() ? loadLiveDeck() : renderDeck(); };
+      <p>${fromDb && !state.liveDeck.length
+        ? `Ahora mismo no hay ${state.role === 'worker' ? 'ofertas abiertas' : 'profesionales nuevos'}. Vuelve a mirar en un rato.`
+        : `No hay más ${state.role === 'worker' ? 'ofertas' : 'profesionales'} con estos filtros.`}</p>
+      <button class="btn" id="resetDeck">${fromDb ? 'Buscar de nuevo' : 'Volver a empezar'}</button></div></div>`;
+    $('#resetDeck').onclick = () => { state.seen.clear(); fromDb ? loadLiveDeck() : renderDeck(); };
     return;
   }
   // Render top card last so it sits on top
@@ -321,6 +358,11 @@ function swipe(dir) {
   if (!card) return;
   const id = card.dataset.id;
   const item = findItem(id);
+  if (guest() && dir === 'right') {
+    // Showing interest needs an account; the card stays so they can come back to it
+    toast('Crea tu cuenta para mostrar interés');
+    return openAuth('signup', 'worker');
+  }
   card.style.transform = `translate(${dir === 'right' ? 600 : -600}px, 40px) rotate(${dir === 'right' ? 30 : -30}deg)`;
   card.style.opacity = '0';
   state.seen.add(id);
@@ -404,6 +446,11 @@ async function refreshMatchCount() {
 
 async function renderMatches() {
   const list = $('#matchList');
+  if (guest()) {
+    list.innerHTML = `<li>${guestHTML('💬', 'Tus matches aparecerán aquí',
+      'Cuando a ti y a una empresa os interese lo mismo, se abre un chat para acordar fecha, precio y forma de pago.')}</li>`;
+    return bindGuest(list);
+  }
   if (live()) {
     list.innerHTML = '<li class="muted">Cargando…</li>';
     await refreshMatchCount();
@@ -639,6 +686,15 @@ function openPay(x) {
 
 /* ---------- Publicar anuncio (empresa) ---------- */
 async function renderAds() {
+  const view = $('#view-publish');
+  $('#adForm').hidden = guest();
+  $$('h4', view).forEach((h) => { h.hidden = guest(); });
+  if (guest()) {
+    $('#adList').innerHTML = `<li>${guestHTML('📣', 'Publica lo que necesitas',
+      'Con una cuenta de empresa publicas anuncios y los profesionales de la zona los ven al momento.')}</li>`;
+    $$('[data-signup]', $('#adList')).forEach((b) => { b.dataset.signup = 'company'; });
+    return bindGuest($('#adList'));
+  }
   if (live()) {
     let ads;
     try { ads = await KDB.myAds(); } catch (e) { return dbError(e); }
@@ -729,6 +785,12 @@ async function renderLiveCalendar() {
 }
 
 function renderCalendar() {
+  if (guest()) {
+    $('#calendarPanel').innerHTML = guestHTML('📅', 'Tu agenda de disponibilidad',
+      'Marca tus días libres, ocupados y no disponibles, y activa "Disponible hoy" para que te encuentren las empresas que necesitan a alguien ya.');
+    $$('[data-signup]', $('#calendarPanel')).forEach((b) => { b.dataset.signup = 'worker'; });
+    return bindGuest($('#calendarPanel'));
+  }
   if (live()) return renderLiveCalendar();
   const p = PROFILES.worker;
   drawCalendar({ cal: state.cal, today: 14, offset: 6, month: 'Noviembre 2026', available: p.available,
@@ -765,6 +827,7 @@ function drawCalendar({ cal, today, offset, month, available, onAvail, onDay }) 
 
 function updateMatchCount() {
   if (live()) return refreshMatchCount();
+  if (guest()) { $('#matchCount').hidden = true; return; }
   const n = state.matches[state.role].length;
   const el = $('#matchCount');
   el.textContent = n;
@@ -774,6 +837,12 @@ function updateMatchCount() {
 /* ---------- Reseñas ---------- */
 async function renderReviews() {
   const panel = $('#reviewPanel');
+  $('#view-reviews .review-tabs').hidden = guest();
+  if (guest()) {
+    panel.innerHTML = guestHTML('⭐', 'Reseñas en los dos sentidos',
+      'Al terminar cada trabajo, profesional y empresa se valoran. Son anónimas y verificadas, y se publican solo cuando los dos han valorado. Las valoraciones de cada empresa ya las ves en sus ofertas.');
+    return bindGuest(panel);
+  }
   if (live()) {
     if (state.rtab !== 'received') {
       panel.innerHTML = '<p class="muted">Cargando…</p>';
@@ -898,7 +967,7 @@ function bindAccount(root) {
   $$('[data-logout]', root).forEach((b) => b.onclick = async () => { await KDB.signOut(); afterAuth(); toast('Sesión cerrada'); });
 }
 
-function openAuth(mode) {
+function openAuth(mode, role) {
   const signup = mode === 'signup';
   $('#modalBody').innerHTML = `
     <span class="kind">${signup ? 'Crear cuenta' : 'Entrar'}</span>
@@ -906,8 +975,8 @@ function openAuth(mode) {
     <form class="form" id="authForm">
       ${signup ? `
         <fieldset><legend>Soy…</legend>
-          <label class="check"><input type="radio" name="role" value="worker" checked /> Profesional: busco trabajos</label>
-          <label class="check"><input type="radio" name="role" value="company" /> Empresa: busco profesionales</label>
+          <label class="check"><input type="radio" name="role" value="worker" ${role !== 'company' ? 'checked' : ''} /> Profesional: busco trabajos</label>
+          <label class="check"><input type="radio" name="role" value="company" ${role === 'company' ? 'checked' : ''} /> Empresa: busco profesionales</label>
         </fieldset>
         <label>Nombre que verán los demás<input name="name" required minlength="2" maxlength="80" autocomplete="name" /></label>` : ''}
       <label>Email<input type="email" name="email" required autocomplete="email" /></label>
@@ -960,6 +1029,7 @@ function afterAuth() {
   if (KDB.me && !KDB.me.details) return openOnboarding();
   state.liveDeck = []; state.liveMatches = [];
   if (live()) toast(`👋 Hola, ${KDB.me.display_name}`);
+  if (guest()) state.seen.clear();
   setRole(live() ? KDB.me.role : state.role);
   loadLiveDeck();
 }
@@ -989,6 +1059,25 @@ async function liveProfile() {
 }
 
 async function renderProfile() {
+  if (guest()) {
+    $('#profilePanel').innerHTML = `
+      <div class="profile-hero">
+        <div class="avatar">👋</div>
+        <div><h2>Únete a kurro.</h2><div>El talento local nos conecta</div></div>
+      </div>
+      <div class="guest-roles">
+        <button class="item" data-signup="worker">
+          <div class="avatar" style="background:var(--c-pink)">🧑‍🍳</div>
+          <div class="item-main"><strong>Soy profesional</strong><small>Encuentra trabajos cerca, muestra tu portfolio y gana reputación.</small></div>
+        </button>
+        <button class="item" data-signup="company">
+          <div class="avatar" style="background:var(--c-sage)">🏢</div>
+          <div class="item-main"><strong>Soy empresa</strong><small>Publica anuncios y encuentra profesionales de confianza, también para hoy.</small></div>
+        </button>
+      </div>
+      <p class="muted" style="text-align:center">¿Ya tienes cuenta? <button class="link" data-auth>Entrar</button></p>`;
+    return bindGuest($('#profilePanel'));
+  }
   const company = state.role === 'company';
   let p = PROFILES[state.role];
   if (live()) {
@@ -1109,6 +1198,7 @@ function init() {
     if (e.key === 'ArrowRight') swipe('right');
   });
 
+  if (KDB.enabled) state.deckLoading = true;  // avoid flashing demo cards before the real jobs load
   renderDeck();
   startLive();
 }
@@ -1117,10 +1207,10 @@ function init() {
 async function startLive() {
   if (!KDB.enabled) return;
   $('#authBtn').hidden = false;
-  try { await KDB.init(); } catch (e) { return dbError(e); }
+  try { await KDB.init(); } catch (e) { state.deckLoading = false; renderDeck(); return dbError(e); }
   KDB.onAuthChange(async () => { await KDB.loadMe(); updateAuthBtn(); });
   updateAuthBtn();
-  if (KDB.me) afterAuth();
+  afterAuth();
 }
 
 function updateAuthBtn() {

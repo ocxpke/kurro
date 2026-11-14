@@ -104,12 +104,12 @@ const KDB = (() => {
     return new Set(rows.map((r) => r[col]));
   };
 
-  // Professional: open ads from companies they have not decided on yet.
+  // Professional (or guest): open ads from companies they have not decided on yet.
   api.discoverAds = async () => {
     const [ads, decided] = await Promise.all([
       sb.from('job_ads').select('id, company_id, category_id, title, description, starts_on, ends_on, duration_hours, budget_cents, budget_type, is_urgent, accepts_cash, accepts_card, accepts_bizum')
         .eq('status', 'open').order('created_at', { ascending: false }).limit(50),
-      decidedPartners(),
+      api.me ? decidedPartners() : new Set(),
     ]);
     const list = check(ads).filter((a) => !decided.has(a.company_id));
     const ids = [...new Set(list.map((a) => a.company_id))];
