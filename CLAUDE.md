@@ -54,7 +54,7 @@ The screen templates live in a Claude Design canvas, "Kurro — Plantillas v2 (p
 | P6 | Professional: chat with a company |
 | W1 / W2 | Desktop panels for company and professional |
 
-The GitHub Pages prototype does not include these changes yet.
+The GitHub Pages prototype implements these decisions in a simpler form: the four category filters, a chat opened from Matches, the payment step with both methods (opened from the chat's hiring proposal), a Publicar view for companies and an Agenda view for professionals. Publicar and Agenda share one nav slot that switches with the role toggle. All data is fake and resets on reload; the payment figures (6 h, 15 €/h, 10 % fee) are examples, not a decided commission.
 
 ## Design (UI/UX)
 
@@ -132,5 +132,5 @@ When your work affects other people (a convention, a shared file, something half
 
 ### Notes between sessions
 
-- 2026-11-14 · claude/product-decisions (PR #10, open) · Claude · New "Product decisions" section. `README.md` still describes the buy/sell marketplace and the prototype still has the old filters (Hostelería, Artesanía, Eventos); both need updating to match.
+- 2026-11-14 · claude/product-decisions (PR #10, open) · Claude · New "Product decisions" section, applied to the prototype (`index.html`, `app.js`, `styles.css`, cache version 8). `README.md` still describes the buy/sell marketplace and needs updating to match.
 - 2026-11-14 · main · Jose · The desktop landing page from the brand board (search bar, featured professionals) is not built yet; the prototype only has the mobile-style app screens.
