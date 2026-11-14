@@ -143,8 +143,11 @@ const reviewers = (company) => (company ? 'profesionales' : 'empresas');
  * With a key in config.js and a signed-in user, the screens read and write the database
  * through db.js. Otherwise they use the demo data above. */
 const live = () => !!(KDB.enabled && KDB.me && KDB.me.details);
-// Not signed in while Supabase is configured: real open jobs in Descubrir, sign-up prompts elsewhere
-const guest = () => !!(KDB.enabled && !KDB.me);
+// Not signed in (or sign-up not finished) while Supabase is configured: real open jobs in
+// Descubrir, sign-up prompts elsewhere
+const guest = () => !!(KDB.enabled && !(KDB.me && KDB.me.details));
+// Sign-up prompt: new visitors get the sign-up form; half-registered users finish their profile
+const askToJoin = (role) => (KDB.me ? openOnboarding(role) : openAuth('signup', role));
 
 // Sign-up prompt used by the guest screens
 function guestHTML(icon, title, text) {
@@ -159,7 +162,7 @@ function guestHTML(icon, title, text) {
   </div>`;
 }
 function bindGuest(root) {
-  $$('[data-signup]', root).forEach((b) => b.onclick = () => openAuth('signup', b.dataset.signup || undefined));
+  $$('[data-signup]', root).forEach((b) => b.onclick = () => askToJoin(b.dataset.signup || undefined));
   $$('[data-auth]', root).forEach((b) => b.onclick = () => openAuth('login'));
 }
 const CAT_LOOK = {
@@ -361,7 +364,7 @@ function swipe(dir) {
   if (guest() && dir === 'right') {
     // Showing interest needs an account; the card stays so they can come back to it
     toast('Crea tu cuenta para mostrar interés');
-    return openAuth('signup', 'worker');
+    return askToJoin('worker');
   }
   card.style.transform = `translate(${dir === 'right' ? 600 : -600}px, 40px) rotate(${dir === 'right' ? 30 : -30}deg)`;
   card.style.opacity = '0';
@@ -972,6 +975,10 @@ function openAuth(mode, role) {
   $('#modalBody').innerHTML = `
     <span class="kind">${signup ? 'Crear cuenta' : 'Entrar'}</span>
     <h2>${signup ? 'Únete a kurro.' : 'Hola de nuevo'}</h2>
+    ${KDB.googleEnabled ? `
+      <button type="button" class="btn google-btn" id="googleBtn">Continuar con Google</button>
+      <p class="muted small-note">Solo compartimos tu nombre, email y foto. Nada más.</p>
+      <div class="or-divider"><span>o con tu email</span></div>` : ''}
     <form class="form" id="authForm">
       ${signup ? `
         <fieldset><legend>Soy…</legend>
@@ -986,7 +993,11 @@ function openAuth(mode, role) {
     <p class="muted" style="text-align:center">${signup ? '¿Ya tienes cuenta?' : '¿Eres nuevo?'}
       <button class="link" id="authSwitch">${signup ? 'Entrar' : 'Crear cuenta'}</button></p>`;
   openModal();
-  $('#authSwitch').onclick = () => openAuth(signup ? 'login' : 'signup');
+  $('#authSwitch').onclick = () => openAuth(signup ? 'login' : 'signup', role);
+  if ($('#googleBtn')) $('#googleBtn').onclick = async (e) => {
+    e.currentTarget.disabled = true;
+    try { await KDB.signInWithGoogle(); } catch (err) { e.currentTarget.disabled = false; dbError(err); }
+  };
   $('#authForm').onsubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.target), btn = $('button[type="submit"]', e.target);
@@ -1004,8 +1015,44 @@ function openAuth(mode, role) {
   };
 }
 
+// First sign-in with Google: no role yet. One step: role, name and profession / company name.
+function openRoleOnboarding(role = 'worker') {
+  const label = (r) => (r === 'worker' ? 'Tu profesión en pocas palabras' : 'Nombre legal de la empresa');
+  const hint = (r) => (r === 'worker' ? 'Ej.: Cocinera · 6 años de experiencia' : 'Ej.: Hotel Puerto Banús S.L.');
+  $('#modalBody').innerHTML = `
+    <span class="kind">Último paso</span>
+    <h2>¿Cómo vas a usar kurro?</h2>
+    <form class="form" id="onbForm">
+      <fieldset><legend>Soy…</legend>
+        <label class="check"><input type="radio" name="role" value="worker" ${role !== 'company' ? 'checked' : ''} /> Profesional: busco trabajos</label>
+        <label class="check"><input type="radio" name="role" value="company" ${role === 'company' ? 'checked' : ''} /> Empresa: busco profesionales</label>
+      </fieldset>
+      <label>Nombre que verán los demás<input name="name" required minlength="2" maxlength="80" value="${esc(KDB.me.suggestedName || '')}" /></label>
+      <label><span id="onbLabel">${label(role)}</span>
+        <input name="text" required minlength="2" maxlength="120" placeholder="${hint(role)}" /></label>
+      <button class="btn" type="submit">Empezar</button>
+    </form>
+    <p class="muted" style="text-align:center"><button class="link" id="onbOut">Salir</button></p>`;
+  openModal();
+  $$('#onbForm input[name="role"]').forEach((r) => r.onchange = () => {
+    $('#onbLabel').textContent = label(r.value);
+    $('#onbForm input[name="text"]').placeholder = hint(r.value);
+  });
+  $('#onbOut').onclick = async () => { await KDB.signOut(); afterAuth(); };
+  $('#onbForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target), btn = $('button[type="submit"]', e.target);
+    btn.disabled = true;
+    try {
+      await KDB.createProfile({ role: f.get('role'), displayName: f.get('name').trim(), text: f.get('text').trim() });
+    } catch (err) { btn.disabled = false; return dbError(err); }
+    afterAuth();
+  };
+}
+
 // After sign-up the worker or company row is still missing: ask for its required field
-function openOnboarding() {
+function openOnboarding(role) {
+  if (KDB.me.needsProfile) return openRoleOnboarding(role);
   const worker = KDB.me.role === 'worker';
   $('#modalBody').innerHTML = `
     <span class="kind">Completa tu perfil</span>
@@ -1026,7 +1073,13 @@ function openOnboarding() {
 // Re-render everything for the current session (signed in, signed out or half-registered)
 function afterAuth() {
   closeModal();
-  if (KDB.me && !KDB.me.details) return openOnboarding();
+  if (KDB.me && !KDB.me.details) {
+    // Half-registered (e.g. first Google sign-in): browse jobs as a guest behind the last step
+    state.liveDeck = [];
+    setRole(state.role);
+    loadLiveDeck();
+    return openOnboarding();
+  }
   state.liveDeck = []; state.liveMatches = [];
   if (live()) toast(`👋 Hola, ${KDB.me.display_name}`);
   if (guest()) state.seen.clear();

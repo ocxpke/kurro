@@ -10,7 +10,7 @@ const KDB = (() => {
   // Ads have a public work place; without maps, new ads are placed in Marbella centre.
   const DEFAULT_LOCATION = 'SRID=4326;POINT(-4.8826 36.5101)';
 
-  const api = { enabled, me: null, categories: [], criteria: [] };
+  const api = { enabled, me: null, categories: [], criteria: [], googleEnabled: false };
 
   const check = ({ data, error }) => { if (error) throw error; return data; };
   const uid = () => api.me && api.me.id;
@@ -30,6 +30,11 @@ const KDB = (() => {
     ]);
     api.categories = check(cats);
     api.criteria = check(crit);
+    // Show "Continuar con Google" only when the Google provider is switched on in Supabase
+    try {
+      const res = await fetch(`${cfg.supabaseUrl}/auth/v1/settings`, { headers: { apikey: cfg.supabaseAnonKey } });
+      api.googleEnabled = !!(res.ok && ((await res.json()).external || {}).google);
+    } catch (e) { api.googleEnabled = false; }
     const { data } = await sb.auth.getSession();
     if (data.session) await api.loadMe();
   };
@@ -42,7 +47,13 @@ const KDB = (() => {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) { api.me = null; return null; }
     const profile = check(await sb.from('profiles').select('id, role, display_name, city').eq('id', user.id).maybeSingle());
-    if (!profile) { api.me = null; return null; }
+    if (!profile) {
+      // Signed in with Google for the first time: no role yet, the app asks for it
+      const meta = user.user_metadata || {};
+      api.me = { id: user.id, email: user.email, needsProfile: true, details: null,
+        suggestedName: meta.full_name || meta.name || (user.email || '').split('@')[0] };
+      return api.me;
+    }
     const table = profile.role === 'worker' ? 'worker_profiles' : 'company_profiles';
     const extra = check(await sb.from(table).select('*').eq('profile_id', user.id).maybeSingle());
     api.me = { ...profile, email: user.email, details: extra };
@@ -52,6 +63,19 @@ const KDB = (() => {
   api.signUp = async ({ email, password, role, displayName }) => {
     const data = check(await sb.auth.signUp({ email, password, options: { data: { role, display_name: displayName } } }));
     return { needsConfirmation: !data.session };
+  };
+
+  // Google: only name, email and photo are shared. Comes back to this same page.
+  api.signInWithGoogle = async () => check(await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href.split(/[?#]/)[0] },
+  }));
+
+  // First sign-in with Google: create the profile with the chosen role, then its details row
+  api.createProfile = async ({ role, displayName, text }) => {
+    check(await sb.from('profiles').insert({ id: uid(), role, display_name: displayName }));
+    await api.loadMe();
+    return api.completeProfile(text);
   };
 
   api.signIn = async (email, password) => {
@@ -109,7 +133,7 @@ const KDB = (() => {
     const [ads, decided] = await Promise.all([
       sb.from('job_ads').select('id, company_id, category_id, title, description, starts_on, ends_on, duration_hours, budget_cents, budget_type, is_urgent, accepts_cash, accepts_card, accepts_bizum')
         .eq('status', 'open').order('created_at', { ascending: false }).limit(50),
-      api.me ? decidedPartners() : new Set(),
+      api.me && api.me.details ? decidedPartners() : new Set(),
     ]);
     const list = check(ads).filter((a) => !decided.has(a.company_id));
     const ids = [...new Set(list.map((a) => a.company_id))];
