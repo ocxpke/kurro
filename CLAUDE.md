@@ -29,7 +29,7 @@ Agreed with the team; they apply to every template, mockup and screen.
 - **Ratings are the main trust signal.** Show the score prominently on swipe cards and on profiles: big score, stars, number of verified reviews, "% repetiría" and scores by category (professional: Puntualidad, Calidad, Trato, Fiabilidad; company: Pago, Trato, Horarios, Ambiente).
 - **Companies have a public profile with the reviews they received** from professionals, the same way professionals do.
 - **Chat between company and professional**, opened when there is mutual interest; hiring proposals are sent and accepted inside the chat.
-- **Payment:** two methods, secure in-app payment (Kurro holds the amount until the job is confirmed) and cash (both sides confirm the payment in the app so they can still review each other).
+- **Payment is a mock:** the app only shows example payment methods (cash, card, Bizum). No money is processed and there is no payment provider. Both sides confirm the payment in the app so they can review each other.
 - **Companies publish ads** from a dedicated screen: title, category, description, dates, schedule, duration, budget, place, urgency and accepted payment methods.
 - **Professionals have an availability calendar**: free, booked and unavailable days, time slots per day, weekly repeat, plus the "Disponible hoy" switch.
 
@@ -118,8 +118,8 @@ The app is a **PWA** (installable web app): one codebase for web and mobile, and
 | Auth | Supabase Auth (email + Google) | Separate roles: worker (`worker`) and business (`company`) |
 | Files | Supabase Storage | Portfolio photos and avatars |
 | Chat | Supabase Realtime | Messages between matched worker and business |
-| Maps / distance | Leaflet + OpenStreetMap | Free; "a 2 km" and local search |
-| Payments (later) | Stripe Connect | Marketplace payments with a platform commission |
+| Distance (no maps) | PostGIS in Supabase | "a 2 km" from the worker's current position to ad locations. No maps in the app |
+| Payments | Mock only (cash, card, Bizum) | No payment provider; real payments are out of scope |
 | Hosting | GitHub Pages for now; Vercel or Netlify if we need preview deploys per PR | Static build, free |
 | Android (later) | PWA wrapped as a Trusted Web Activity (Bubblewrap / PWABuilder); Capacitor only if native features are needed | Reuses the same web app |
 
@@ -141,6 +141,7 @@ We already had a problem with Supabase generating a table with just an `id` and 
 - Every schema change is a **SQL migration file** committed in `supabase/migrations/`. Do not create or change tables by hand in the Supabase dashboard.
 - Generate the TypeScript types from the schema (`supabase gen types typescript`) so the frontend matches the real columns.
 - If a tool or AI generates a schema, review it against these rules before applying it.
+- **Privacy:** never store a worker's home address or location. Profiles keep only the municipality. Only ads have a location (the public work place); distances are computed from the position the worker's device sends at search time, which is not saved.
 
 ### Pending, to do once the architecture is in place
 
