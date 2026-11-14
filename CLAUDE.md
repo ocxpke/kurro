@@ -20,6 +20,42 @@ Reply in the language the person writes in (the team mostly writes in Spanish). 
 6. Only commit, push or open a PR when asked. Do small, step-by-step changes; do not do extra work that was not requested.
 7. Do not force-push and do not change repository settings or branch rules.
 
+## Product decisions (2026-11-14)
+
+Agreed with the team; they apply to every template, mockup and screen.
+
+- **Companies request services; they do not buy or sell products.** There is no marketplace and there are no buy/sell tabs. The company side works with service requests (ads) and their candidates.
+- **Service categories (search filters):** Hostelería y Gastronomía, Artesanía, Bienestar emocional, Obras y reformas. Keep these exact names. The "Disponible hoy" urgency filter stays next to them.
+- **Ratings are the main trust signal.** Show the score prominently on swipe cards and on profiles: big score, stars, number of verified reviews, "% repetiría" and scores by category (professional: Puntualidad, Calidad, Trato, Fiabilidad; company: Pago, Trato, Horarios, Ambiente).
+- **Companies have a public profile with the reviews they received** from professionals, the same way professionals do.
+- **Chat between company and professional**, opened when there is mutual interest; hiring proposals are sent and accepted inside the chat.
+- **Payment:** two methods, secure in-app payment (Kurro holds the amount until the job is confirmed) and cash (both sides confirm the payment in the app so they can still review each other).
+- **Companies publish ads** from a dedicated screen: title, category, description, dates, schedule, duration, budget, place, urgency and accepted payment methods.
+- **Professionals have an availability calendar**: free, booked and unavailable days, time slots per day, weekly repeat, plus the "Disponible hoy" switch.
+
+### Screen templates
+
+The screen templates live in a Claude Design canvas, "Kurro — Plantillas v2 (paleta Algodón)" (private to its owner until shared): https://claude.ai/artifact/NFQn3bWmb4PmEoGhgyee5S. They use the Algodón light palette and placeholder copy.
+
+| Code | Screen |
+|------|--------|
+| E1 | Company: discover professionals (swipe) |
+| E2 | Company: alerts and saved filters |
+| E3 | Company: service requests (replaces the old marketplace screen) |
+| E4 | Company: hiring and payment (secure in-app or cash) |
+| E5 | Company: publish an ad |
+| E6 | Company: profile and received reviews |
+| E7 | Company: chat with a professional |
+| P1 | Professional: offers (swipe) |
+| P2 | Professional: profile and reputation |
+| P3 | Professional: jobs and earnings |
+| P4 | Professional: mutual review |
+| P5 | Professional: availability calendar |
+| P6 | Professional: chat with a company |
+| W1 / W2 | Desktop panels for company and professional |
+
+The GitHub Pages prototype implements these decisions in a simpler form: the four category filters, a chat opened from Matches, the payment step with both methods (opened from the chat's hiring proposal), a Publicar view for companies and an Agenda view for professionals. Publicar and Agenda share one nav slot that switches with the role toggle. All data is fake and resets on reload; the payment figures (6 h, 15 €/h, 10 % fee) are examples, not a decided commission.
+
 ## Design (UI/UX)
 
 Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: "El talento local nos conecta."
@@ -63,7 +99,54 @@ Accessibility: never put white text on pink. Use `--on-accent` (dark) on pink bu
 
 ## Tech stack
 
-Current prototype: plain HTML, CSS and JavaScript (no framework, no backend), published with GitHub Pages from `main` at https://ocxpke.github.io/kurro/. Fonts load from Google Fonts. The final stack is still to be decided: do not assume a framework or add dependencies without asking.
+### Current prototype
+
+Plain HTML, CSS and JavaScript (no framework, no backend), published with GitHub Pages from `main` at https://ocxpke.github.io/kurro/. Fonts load from Google Fonts. It is a clickable mockup with fake data; it will be replaced by the app below.
+
+### Target stack for the app
+
+The app is a **PWA** (installable web app): one codebase for web and mobile, and the base for the QR code and a later Android/Play Store build.
+
+| Layer | Choice | Why |
+|-------|--------|-----|
+| Frontend | **React + TypeScript + Vite** | Fast to build and to learn, typed, huge ecosystem |
+| Styling | **Plain CSS with the existing tokens** (`styles.css`, `themes.css`) | Keeps the Algodón design system as is; no UI library needed |
+| PWA | **vite-plugin-pwa** | Manifest, icons and service worker (install + offline) |
+| Routing | **React Router** | Screens: Descubrir, Matches, Reseñas, Perfil |
+| Backend | **Supabase** | Postgres database, auth, file storage and realtime in one service, no server code to maintain |
+| Database | Supabase **Postgres** with Row Level Security | Users, profiles, offers, matches and reviews are relational; RLS keeps reviews anonymous and enforces who can read or write what |
+| Auth | Supabase Auth (email + Google) | Separate roles: worker (`worker`) and business (`company`) |
+| Files | Supabase Storage | Portfolio photos and avatars |
+| Chat | Supabase Realtime | Messages between matched worker and business |
+| Maps / distance | Leaflet + OpenStreetMap | Free; "a 2 km" and local search |
+| Payments (later) | Stripe Connect | Marketplace payments with a platform commission |
+| Hosting | GitHub Pages for now; Vercel or Netlify if we need preview deploys per PR | Static build, free |
+| Android (later) | PWA wrapped as a Trusted Web Activity (Bubblewrap / PWABuilder); Capacitor only if native features are needed | Reuses the same web app |
+
+### Rules
+
+- Do not add other frameworks, UI libraries or backend services without asking the team.
+- Keep secrets out of the repo: Supabase keys go in a `.env` file that is not committed (commit a `.env.example` instead). Only the Supabase anon key may reach the browser; never the service role key.
+- Every table must have Row Level Security enabled before it holds real data.
+- Reviews must never expose who wrote them to the reviewed party; enforce it in the database, not only in the UI.
+- Keep using the CSS tokens from `styles.css`; components must not hardcode colors.
+
+### Database design (important)
+
+We already had a problem with Supabase generating a table with just an `id` and a JSON column holding everything. **Do not do that.** It hides errors, breaks relations and makes queries and security rules unreliable.
+
+- Design a **relational schema**: one table per entity (for example profiles, workers, companies, offers, matches, reviews, messages), each with **typed columns** (`text`, `integer`, `numeric`, `boolean`, `timestamptz`, `uuid`...).
+- Link tables with **foreign keys**, and use `not null`, `unique`, `check` constraints and enums for fixed values (role, status, sector, rating 1 to 5).
+- **No `json`/`jsonb` column to store an entity's fields.** JSON is only acceptable for truly free-form, optional extra data that is never filtered or joined on, and only after asking the team.
+- Every schema change is a **SQL migration file** committed in `supabase/migrations/`. Do not create or change tables by hand in the Supabase dashboard.
+- Generate the TypeScript types from the schema (`supabase gen types typescript`) so the frontend matches the real columns.
+- If a tool or AI generates a schema, review it against these rules before applying it.
+
+### Pending, to do once the architecture is in place
+
+- PWA setup (manifest, icons, service worker).
+- QR code pointing to the published web app.
+- Android build for Google Play. New personal Play Console accounts must run a closed test with at least 12 testers for 14 days before publishing, so plan about three weeks.
 
 ## Coordination between Claude sessions
 
@@ -97,4 +180,5 @@ When your work affects other people (a convention, a shared file, something half
 ### Notes between sessions
 
 - 2026-11-14 · claude/supabase-init (PR #11, open) · Jose · Supabase project **Kurro** (org Kurro, Free plan, region eu-west-1, ref `ctdynarhmqvxbvcmcbaa`) is the only database for this app; never use the old Cudeca project. The initial schema is applied (see `supabase/migrations/`). Every new migration applied to it must also be committed there with the same version number. Privacy: never store workers' home locations; only ads have a location. Payments are a mock (cash, card, Bizum), no real processing.
+- 2026-11-14 · claude/product-decisions (PR #10, merged) · Claude · New "Product decisions" section, applied to the prototype (`index.html`, `app.js`, `styles.css`, cache version 8). `README.md` still describes the buy/sell marketplace and needs updating to match.
 - 2026-11-14 · main · Jose · The desktop landing page from the brand board (search bar, featured professionals) is not built yet; the prototype only has the mobile-style app screens.
