@@ -100,6 +100,14 @@ Accessibility: never put white text on pink. Use `--on-accent` (dark) on pink bu
 - `themes.css` also keeps the alternative themes `petroleo`, `salvia` and `crema` (`?theme=<name>`) for comparison only. Do not use them as a base for new work.
 - Any new screen must look right in both Algodón light and dark, with text contrast at WCAG AA (4.5:1).
 - `preview.html` shows every theme side by side.
+
+### Mobile rules
+
+- Nothing may be wider than the screen: phones then zoom the whole page out. Long rows (filters) scroll inside their own container.
+- Text fields use 16px text, or iPhone zooms in when they get focus.
+- Tap targets are at least about 40px. Respect `env(safe-area-inset-*)` at the top and bottom (installed PWA, iPhone home bar).
+- The Descubrir card shrinks with the screen height so ✕ ★ ♥ stay visible above the bottom bar.
+- Check every screen at 360×640, 375×667 and 390×844, in light and dark mode, before opening a PR.
 - After changing `styles.css`, `themes.css` or `app.js`, bump the `?v=N` number on their links in `index.html` so browsers do not keep old cached files.
 
 ## Tech stack
