@@ -58,7 +58,12 @@ The GitHub Pages prototype implements these decisions in a simpler form: the fou
 
 ## Design (UI/UX)
 
-Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: "El talento local nos conecta."
+Brand: **kurro.** (lowercase wordmark, the final dot in pink). **Tagline: to be decided**; do not use "El talento local nos conecta" or invent a new one in the app until the team picks it.
+
+Logo (in `brand/logo/`): a "K" made of a deep-teal vertical bar, a dark dot and a pink chevron, all with rounded ends.
+- `kurro-logo-fondo-crema.png`: on cream `#F3E8DC`, pink `#F18AB5`. Used for the app icons in `icons/`.
+- `kurro-logo-sin-fondo.png`: transparent background, stronger pink (about `#EC6AA0`). Use it on light backgrounds.
+- Icons are generated from the cream version; regenerate all of them (any, maskable, apple-touch, favicon) if the logo changes, and bump `CACHE` in `sw.js`.
 
 ### Palette
 

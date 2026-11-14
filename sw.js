@@ -4,7 +4,7 @@
  * - The supabase-js library and the fonts are cached after their first load.
  * - Supabase API calls are never cached (they are personal, live data).
  * Bump CACHE when the list of shell files changes. */
-const CACHE = 'kurro-v1';
+const CACHE = 'kurro-v2';
 const SHELL = [
   './', 'index.html', 'styles.css', 'themes.css', 'app.js', 'db.js', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png',
