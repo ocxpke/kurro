@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#006D77" />
+  <title>Kurro · Trabajo local con reseñas en ambos sentidos</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar (desktop) / bottom nav (mobile) -->
+    <nav class="nav" aria-label="Navegación principal">
+      <div class="brand">
+        <span class="brand-logo">K</span>
+        <span class="brand-name">Kurro</span>
+      </div>
+      <button class="nav-item active" data-view="discover"><span class="ico">🔥</span><span>Descubrir</span></button>
+      <button class="nav-item" data-view="matches"><span class="ico">💬</span><span>Matches</span><span class="badge-count" id="matchCount" hidden>0</span></button>
+      <button class="nav-item" data-view="reviews"><span class="ico">⭐</span><span>Reseñas</span></button>
+      <button class="nav-item" data-view="profile"><span class="ico">👤</span><span>Perfil</span></button>
+    </nav>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="brand brand-mobile">
+          <span class="brand-logo">K</span>
+          <span class="brand-name">Kurro</span>
+        </div>
+        <div class="role-toggle" role="tablist" aria-label="Modo">
+          <button class="role active" data-role="worker" role="tab">Busco trabajo</button>
+          <button class="role" data-role="company" role="tab">Busco talento</button>
+        </div>
+      </header>
+
+      <!-- DESCUBRIR -->
+      <section class="view active" id="view-discover">
+        <div class="filters">
+          <button class="chip" id="urgentChip">⚡ Disponible hoy</button>
+          <button class="chip" data-sector="all">Todo</button>
+          <button class="chip" data-sector="Hostelería">Hostelería</button>
+          <button class="chip" data-sector="Artesanía">Artesanía</button>
+          <button class="chip" data-sector="Eventos">Eventos</button>
+        </div>
+
+        <div class="deck" id="deck"></div>
+
+        <div class="actions">
+          <button class="act act-no" id="btnNo" aria-label="Descartar">✕</button>
+          <button class="act act-info" id="btnInfo" aria-label="Ver reseñas">★</button>
+          <button class="act act-yes" id="btnYes" aria-label="Me interesa">♥</button>
+        </div>
+      </section>
+
+      <!-- MATCHES -->
+      <section class="view" id="view-matches">
+        <h2>Tus matches</h2>
+        <p class="muted">Cuando ambas partes se interesan, se abre el chat. Al terminar el trabajo, las dos se valoran.</p>
+        <ul class="list" id="matchList"></ul>
+      </section>
+
+      <!-- RESEÑAS -->
+      <section class="view" id="view-reviews">
+        <h2>Reseñas bidireccionales</h2>
+        <p class="muted">Verificadas y anónimas. Los profesionales valoran a las empresas y las empresas a los profesionales.</p>
+        <div class="review-tabs">
+          <button class="rtab active" data-rtab="received">Recibidas</button>
+          <button class="rtab" data-rtab="given">Pendientes de dar</button>
+        </div>
+        <div id="reviewPanel"></div>
+      </section>
+
+      <!-- PERFIL -->
+      <section class="view" id="view-profile">
+        <div id="profilePanel"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal detalle -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="Cerrar">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
