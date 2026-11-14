@@ -1,93 +1,62 @@
-/* Kurro · pale themes (light + dark)
+/* kurro · pale themes (light + dark), derived from the brand palette
+   #F18AB5 pink · #175C68 teal · #F3E8DC cream · #382B30 dark · #A5B9A5 sage.
    Activated with <html data-theme="..." data-mode="light|dark">.
-   Without data-theme the original look in styles.css is kept. */
+   Without data-theme, the brand defaults in styles.css are used. */
 
-/* ---------- Bruma: pale teal, the closest to the original palette ---------- */
-html[data-theme="bruma"][data-mode="light"] {
-  --alice: #F3F7F8; --white: #FCFEFE; --teal: #3B7A80; --aqua: #BCD9D5; --almond: #F6E7E0;
-  --tangerine: #C98C74; --c3: #EBC9BB; --ink: #22383C; --muted: #566C70;
-  --on-primary: #FFFFFF; --on-accent: #2B1A13; --warm-ink: #864731;
-}
-html[data-theme="bruma"][data-mode="dark"] {
-  --alice: #10181A; --white: #192326; --teal: #86B9B9; --aqua: #2B4547; --almond: #382C28;
-  --tangerine: #C4927E; --c3: #4A3530; --ink: #D3E0E1; --muted: #93A7AA;
-  --on-primary: #0E191B; --on-accent: #1B110D; --warm-ink: #E6BFAE;
-}
+html[data-theme][data-mode="dark"] { color-scheme: dark; --shadow: 0 10px 30px rgba(0, 0, 0, .35); }
 
-/* ---------- Arena: warm sand, terracotta as main color ---------- */
-html[data-theme="arena"][data-mode="light"] {
-  --alice: #FAF5F1; --white: #FFFCFA; --teal: #93573F; --aqua: #EAD9CF; --almond: #F5E6DD;
-  --tangerine: #6E9C97; --c3: #D9C2B4; --ink: #3A2922; --muted: #73625A;
-  --on-primary: #FFFFFF; --on-accent: #10201E; --warm-ink: #7E4A35;
+/* ---------- Algodón: pale pink, the softest take on the brand ---------- */
+html[data-theme="algodon"][data-mode="light"] {
+  --bg: #FAF3F1; --surface: #FFFCFB; --primary: #2F6670; --on-primary: #FFFFFF;
+  --accent: #EDA6C4; --on-accent: #382B30; --accent-soft: #F8E3EC; --warm-ink: #8A3A5E;
+  --sage: #BCCBBC; --c-sage: #E3EAE2; --c-pink: #F7E1EA; --c-warm: #F2E7DD;
+  --ink: #382B30; --muted: #6B5D63;
 }
-html[data-theme="arena"][data-mode="dark"] {
-  --alice: #191412; --white: #231C19; --teal: #D8A790; --aqua: #3A2E29; --almond: #352B26;
-  --tangerine: #8DB5B0; --c3: #46362F; --ink: #EBDCD3; --muted: #A8968D;
-  --on-primary: #1E130E; --on-accent: #0F1B1A; --warm-ink: #E9C1AE;
+html[data-theme="algodon"][data-mode="dark"] {
+  --bg: #1A1518; --surface: #241D21; --primary: #8FBFC6; --on-primary: #0F1B1E;
+  --accent: #D99BB6; --on-accent: #241419; --accent-soft: #3D2731; --warm-ink: #EDB8CF;
+  --sage: #6F806F; --c-sage: #2A332B; --c-pink: #3A2630; --c-warm: #2F2721;
+  --ink: #EDE2E6; --muted: #A8979E;
 }
 
-/* ---------- Salvia: soft sage green ---------- */
+/* ---------- Petróleo: teal-led, cool and calm ---------- */
+html[data-theme="petroleo"][data-mode="light"] {
+  --bg: #F1F5F5; --surface: #FBFDFD; --primary: #175C68; --on-primary: #FFFFFF;
+  --accent: #E8A3C1; --on-accent: #382B30; --accent-soft: #F6E1EA; --warm-ink: #8A3A5E;
+  --sage: #B5C6B5; --c-sage: #DCE7E6; --c-pink: #F3E1E8; --c-warm: #E6ECEA;
+  --ink: #1F2E32; --muted: #56686C;
+}
+html[data-theme="petroleo"][data-mode="dark"] {
+  --bg: #0F1719; --surface: #172225; --primary: #7FB6BF; --on-primary: #0B1A1D;
+  --accent: #D99BB6; --on-accent: #241419; --accent-soft: #352631; --warm-ink: #EDB8CF;
+  --sage: #5F7560; --c-sage: #1F3236; --c-pink: #33262D; --c-warm: #22302F;
+  --ink: #D8E5E7; --muted: #92A6A9;
+}
+
+/* ---------- Salvia: sage-led, natural and restful ---------- */
 html[data-theme="salvia"][data-mode="light"] {
-  --alice: #F2F6F3; --white: #FBFCFB; --teal: #44786A; --aqua: #C6DDD3; --almond: #F3E8E0;
-  --tangerine: #C59580; --c3: #E5CEC2; --ink: #23352E; --muted: #5A6D65;
-  --on-primary: #FFFFFF; --on-accent: #2A1A13; --warm-ink: #82493A;
+  --bg: #F2F5F1; --surface: #FBFCFA; --primary: #3E6A5C; --on-primary: #FFFFFF;
+  --accent: #E9A6C3; --on-accent: #382B30; --accent-soft: #F4E2E9; --warm-ink: #8A3A5E;
+  --sage: #A5B9A5; --c-sage: #DCE6DA; --c-pink: #F3E2E8; --c-warm: #ECEBDF;
+  --ink: #2B342F; --muted: #5D6A63;
 }
 html[data-theme="salvia"][data-mode="dark"] {
-  --alice: #111714; --white: #1A221E; --teal: #8EC0AE; --aqua: #293D35; --almond: #352C27;
-  --tangerine: #C99C88; --c3: #45362F; --ink: #D5E2DB; --muted: #93A59C;
-  --on-primary: #0E1A15; --on-accent: #1B120E; --warm-ink: #E4C2B2;
+  --bg: #121713; --surface: #1B221C; --primary: #A5C2A9; --on-primary: #121A13;
+  --accent: #D6A0B8; --on-accent: #241419; --accent-soft: #352830; --warm-ink: #EBBACD;
+  --sage: #6F826F; --c-sage: #263228; --c-pink: #33272D; --c-warm: #2A2D25;
+  --ink: #DCE5DC; --muted: #97A698;
 }
 
-/* ---------- Alba: very soft, warm light with little blue (night/dawn shifts) ---------- */
-html[data-theme="alba"][data-mode="light"] {
-  --alice: #FBF5EF; --white: #FFFAF6; --teal: #3F6E71; --aqua: #D3E4E0; --almond: #FAE5DA;
-  --tangerine: #D29E88; --c3: #F0D3C5; --ink: #33302D; --muted: #69625D;
-  --on-primary: #FFFFFF; --on-accent: #2E1C14; --warm-ink: #864B33;
+/* ---------- Crema: warm cream with little blue light (night and dawn shifts) ---------- */
+html[data-theme="crema"][data-mode="light"] {
+  --bg: #F7EFE6; --surface: #FDF8F2; --primary: #2E5F66; --on-primary: #FFFFFF;
+  --accent: #E6A3BC; --on-accent: #382B30; --accent-soft: #F5E0E3; --warm-ink: #87405C;
+  --sage: #BFC6B2; --c-sage: #E3E6D8; --c-pink: #F4DFE2; --c-warm: #EFE2D2;
+  --ink: #382B30; --muted: #6B5D63;
 }
-html[data-theme="alba"][data-mode="dark"] {
-  --alice: #17110E; --white: #211915; --teal: #D4A68E; --aqua: #33302B; --almond: #3A2B24;
-  --tangerine: #A9C5BF; --c3: #45332B; --ink: #E6D6CA; --muted: #A49185;
-  --on-primary: #1D130E; --on-accent: #12191A; --warm-ink: #EBC4B0;
+html[data-theme="crema"][data-mode="dark"] {
+  --bg: #18120F; --surface: #221A16; --primary: #D9AE9A; --on-primary: #1E130E;
+  --accent: #D79AB2; --on-accent: #22131A; --accent-soft: #3A2A27; --warm-ink: #EBBFCB;
+  --sage: #7A8670; --c-sage: #2C2E25; --c-pink: #3A2629; --c-warm: #33271F;
+  --ink: #EADBCF; --muted: #A6948A;
 }
-
-/* ---------- Shared overrides for any theme ---------- */
-html[data-theme] { color-scheme: light; }
-html[data-theme][data-mode="dark"] { color-scheme: dark; }
-
-/* Text on primary / accent backgrounds */
-html[data-theme] .role.active,
-html[data-theme] .rtab.active,
-html[data-theme] .btn,
-html[data-theme] .act-yes { color: var(--on-primary); }
-html[data-theme] .btn.ghost { color: var(--teal); }
-html[data-theme] .btn.warm,
-html[data-theme] .tag-urgent,
-html[data-theme] #urgentChip.active,
-html[data-theme] .badge-count { color: var(--on-accent); }
-
-html[data-theme] .brand-logo,
-html[data-theme] .profile-hero {
-  background: linear-gradient(135deg, var(--teal), color-mix(in srgb, var(--teal) 78%, var(--aqua)));
-  color: var(--on-primary);
-}
-html[data-theme] .profile-hero h2,
-html[data-theme] .profile-hero .stars { color: var(--on-primary) !important; background: none !important; }
-html[data-theme] .profile-hero .avatar { background: color-mix(in srgb, var(--on-primary) 18%, transparent); }
-
-html[data-theme] .badge.warm,
-html[data-theme] .dir { color: var(--warm-ink); }
-html[data-theme] .card-hero .score { background: var(--white); color: var(--teal); }
-html[data-theme] .rate-stars button { color: var(--muted); }
-html[data-theme] .rate-stars button.on { color: var(--tangerine); }
-html[data-theme] textarea { background: var(--white); color: var(--ink); border-color: var(--aqua); }
-html[data-theme] .toast { background: var(--ink); color: var(--white); }
-html[data-theme] .modal-backdrop { background: rgba(0, 0, 0, .45); }
-html[data-theme][data-mode="dark"] .card,
-html[data-theme][data-mode="dark"] .act { box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
-
-/* The mockup paints card / avatar backgrounds with fixed hex values: remap them */
-html[data-theme] [style*="#83C5BE"] { background: var(--aqua) !important; }
-html[data-theme] [style*="#FFDDD2"] { background: var(--almond) !important; }
-html[data-theme] [style*="#E29578"] { background: var(--c3) !important; }
-html[data-theme] [style*="#006D77"] { background: var(--teal) !important; }
-html[data-theme] [style*="#EDF6F9"] { background: var(--alice) !important; }

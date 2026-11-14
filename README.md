@@ -66,11 +66,15 @@ Reputation is built through a **bidirectional, verified and anonymous review sys
 
 | Swatch | Name | Hex |
 |--------|------|-----|
-| ![#006D77](https://placehold.co/24x24/006D77/006D77.png) | Stormy Teal | `#006D77` |
-| ![#83C5BE](https://placehold.co/24x24/83C5BE/83C5BE.png) | Pearl Aqua | `#83C5BE` |
-| ![#EDF6F9](https://placehold.co/24x24/EDF6F9/EDF6F9.png) | Alice Blue | `#EDF6F9` |
-| ![#FFDDD2](https://placehold.co/24x24/FFDDD2/FFDDD2.png) | Almond Silk | `#FFDDD2` |
-| ![#E29578](https://placehold.co/24x24/E29578/E29578.png) | Tangerine Dream | `#E29578` |
+| ![#F18AB5](https://placehold.co/24x24/F18AB5/F18AB5.png) | Pink (accent) | `#F18AB5` |
+| ![#175C68](https://placehold.co/24x24/175C68/175C68.png) | Deep teal (primary) | `#175C68` |
+| ![#F3E8DC](https://placehold.co/24x24/F3E8DC/F3E8DC.png) | Cream (background) | `#F3E8DC` |
+| ![#382B30](https://placehold.co/24x24/382B30/382B30.png) | Dark (text) | `#382B30` |
+| ![#A5B9A5](https://placehold.co/24x24/A5B9A5/A5B9A5.png) | Sage (support) | `#A5B9A5` |
+
+Typography: Plus Jakarta Sans for titles, Inter for text.
+
+Pale light and dark themes for every time of day: see the [theme preview](https://ocxpke.github.io/kurro/preview.html).
 
 ## Tech stack
 
