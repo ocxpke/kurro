@@ -20,6 +20,42 @@ Reply in the language the person writes in (the team mostly writes in Spanish). 
 6. Only commit, push or open a PR when asked. Do small, step-by-step changes; do not do extra work that was not requested.
 7. Do not force-push and do not change repository settings or branch rules.
 
+## Product decisions (2026-11-14)
+
+Agreed with the team; they apply to every template, mockup and screen.
+
+- **Companies request services; they do not buy or sell products.** There is no marketplace and there are no buy/sell tabs. The company side works with service requests (ads) and their candidates.
+- **Service categories (search filters):** Hostelería y Gastronomía, Artesanía, Bienestar emocional, Obras y reformas. Keep these exact names. The "Disponible hoy" urgency filter stays next to them.
+- **Ratings are the main trust signal.** Show the score prominently on swipe cards and on profiles: big score, stars, number of verified reviews, "% repetiría" and scores by category (professional: Puntualidad, Calidad, Trato, Fiabilidad; company: Pago, Trato, Horarios, Ambiente).
+- **Companies have a public profile with the reviews they received** from professionals, the same way professionals do.
+- **Chat between company and professional**, opened when there is mutual interest; hiring proposals are sent and accepted inside the chat.
+- **Payment:** two methods, secure in-app payment (Kurro holds the amount until the job is confirmed) and cash (both sides confirm the payment in the app so they can still review each other).
+- **Companies publish ads** from a dedicated screen: title, category, description, dates, schedule, duration, budget, place, urgency and accepted payment methods.
+- **Professionals have an availability calendar**: free, booked and unavailable days, time slots per day, weekly repeat, plus the "Disponible hoy" switch.
+
+### Screen templates
+
+The screen templates live in a Claude Design canvas, "Kurro — Plantillas v2 (paleta Algodón)" (private to its owner until shared): https://claude.ai/artifact/NFQn3bWmb4PmEoGhgyee5S. They use the Algodón light palette and placeholder copy.
+
+| Code | Screen |
+|------|--------|
+| E1 | Company: discover professionals (swipe) |
+| E2 | Company: alerts and saved filters |
+| E3 | Company: service requests (replaces the old marketplace screen) |
+| E4 | Company: hiring and payment (secure in-app or cash) |
+| E5 | Company: publish an ad |
+| E6 | Company: profile and received reviews |
+| E7 | Company: chat with a professional |
+| P1 | Professional: offers (swipe) |
+| P2 | Professional: profile and reputation |
+| P3 | Professional: jobs and earnings |
+| P4 | Professional: mutual review |
+| P5 | Professional: availability calendar |
+| P6 | Professional: chat with a company |
+| W1 / W2 | Desktop panels for company and professional |
+
+The GitHub Pages prototype implements these decisions in a simpler form: the four category filters, a chat opened from Matches, the payment step with both methods (opened from the chat's hiring proposal), a Publicar view for companies and an Agenda view for professionals. Publicar and Agenda share one nav slot that switches with the role toggle. All data is fake and resets on reload; the payment figures (6 h, 15 €/h, 10 % fee) are examples, not a decided commission.
+
 ## Design (UI/UX)
 
 Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: "El talento local nos conecta."
@@ -96,4 +132,5 @@ When your work affects other people (a convention, a shared file, something half
 
 ### Notes between sessions
 
+- 2026-11-14 · claude/product-decisions (PR #10, open) · Claude · New "Product decisions" section, applied to the prototype (`index.html`, `app.js`, `styles.css`, cache version 8). `README.md` still describes the buy/sell marketplace and needs updating to match.
 - 2026-11-14 · main · Jose · The desktop landing page from the brand board (search bar, featured professionals) is not built yet; the prototype only has the mobile-style app screens.

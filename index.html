@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=6" />
-  <link rel="stylesheet" href="themes.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="themes.css?v=8" />
   <script>
     // Theme: Algodón by default. Mode follows the device unless ?mode=light|dark is given.
     // Alternatives for comparison: ?theme=petroleo|salvia|crema
@@ -29,6 +29,8 @@
       </div>
       <button class="nav-item active" data-view="discover"><span class="ico">🔥</span><span>Descubrir</span></button>
       <button class="nav-item" data-view="matches"><span class="ico">💬</span><span>Matches</span><span class="badge-count" id="matchCount" hidden>0</span></button>
+      <button class="nav-item" data-view="publish" data-only="company" hidden><span class="ico">📣</span><span>Publicar</span></button>
+      <button class="nav-item" data-view="calendar" data-only="worker"><span class="ico">📅</span><span>Agenda</span></button>
       <button class="nav-item" data-view="reviews"><span class="ico">⭐</span><span>Reseñas</span></button>
       <button class="nav-item" data-view="profile"><span class="ico">👤</span><span>Perfil</span></button>
     </nav>
@@ -49,16 +51,17 @@
         <div class="filters">
           <button class="chip" id="urgentChip">⚡ Disponible hoy</button>
           <button class="chip" data-sector="all">Todo</button>
-          <button class="chip" data-sector="Hostelería">Hostelería</button>
+          <button class="chip" data-sector="Hostelería y Gastronomía">Hostelería y Gastronomía</button>
           <button class="chip" data-sector="Artesanía">Artesanía</button>
-          <button class="chip" data-sector="Eventos">Eventos</button>
+          <button class="chip" data-sector="Bienestar emocional">Bienestar emocional</button>
+          <button class="chip" data-sector="Obras y reformas">Obras y reformas</button>
         </div>
 
         <div class="deck" id="deck"></div>
 
         <div class="actions">
           <button class="act act-no" id="btnNo" aria-label="Descartar">✕</button>
-          <button class="act act-info" id="btnInfo" aria-label="Ver reseñas">★</button>
+          <button class="act act-info" id="btnInfo" aria-label="Ver perfil y reseñas">★</button>
           <button class="act act-yes" id="btnYes" aria-label="Me interesa">♥</button>
         </div>
       </section>
@@ -68,6 +71,45 @@
         <h2>Tus matches</h2>
         <p class="muted">Cuando ambas partes se interesan, se abre el chat. Al terminar el trabajo, las dos se valoran.</p>
         <ul class="list" id="matchList"></ul>
+      </section>
+
+      <!-- PUBLICAR ANUNCIO (empresa) -->
+      <section class="view" id="view-publish">
+        <h2>Publicar anuncio</h2>
+        <p class="muted">Describe el servicio que necesitas. Los profesionales de la zona lo verán en Descubrir.</p>
+        <form class="form" id="adForm">
+          <label>¿Qué servicio necesitas?<input name="title" required maxlength="60" placeholder="Ej.: Cocinero/a de apoyo" /></label>
+          <label>Categoría
+            <select name="sector">
+              <option>Hostelería y Gastronomía</option>
+              <option>Artesanía</option>
+              <option>Bienestar emocional</option>
+              <option>Obras y reformas</option>
+            </select>
+          </label>
+          <label>Descripción<textarea name="desc" placeholder="Qué hay que hacer, requisitos y qué ofrece tu empresa"></textarea></label>
+          <div class="form-row">
+            <label>Fecha<input type="date" name="date" /></label>
+            <label>Duración<input name="duration" maxlength="30" placeholder="Ej.: 6 horas" /></label>
+          </div>
+          <label>Presupuesto<input name="budget" maxlength="30" placeholder="Ej.: 15 €/h" /></label>
+          <label class="check"><input type="checkbox" name="urgent" /> ⚡ Es urgente: lo necesito hoy</label>
+          <fieldset>
+            <legend>Formas de pago que aceptas</legend>
+            <label class="check"><input type="checkbox" name="paySecure" checked /> Pago seguro en la app</label>
+            <label class="check"><input type="checkbox" name="payCash" checked /> Efectivo</label>
+          </fieldset>
+          <button class="btn" type="submit">Publicar anuncio</button>
+        </form>
+        <h4>Tus anuncios</h4>
+        <ul class="list" id="adList"></ul>
+      </section>
+
+      <!-- AGENDA (profesional) -->
+      <section class="view" id="view-calendar">
+        <h2>Mi disponibilidad</h2>
+        <p class="muted">Toca un día para marcarlo como libre o no disponible. Las empresas lo ven en tu perfil.</p>
+        <div id="calendarPanel"></div>
       </section>
 
       <!-- RESEÑAS -->
@@ -99,6 +141,6 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
