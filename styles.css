@@ -260,3 +260,14 @@ h4 { margin: 14px 0 6px; color: var(--primary); }
 .account { margin: 6px 0 12px; }
 .link { color: var(--primary); font-weight: 700; text-decoration: underline; padding: 0 4px; }
 .btn:disabled { opacity: .6; cursor: wait; }
+
+/* ---------- Guest (not signed in) ---------- */
+[hidden] { display: none !important; }
+.guest-cta { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 18px 8px; }
+.guest-cta h3 { margin: 4px 0 0; color: var(--ink); }
+.guest-cta p { max-width: 36ch; margin: 0 0 8px; }
+.guest-icon { font-size: 2.6rem; line-height: 1; }
+.guest-cta .job-actions { width: 100%; max-width: 320px; }
+.guest-roles { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+.guest-roles .item { width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.guest-roles .item small { display: block; }
