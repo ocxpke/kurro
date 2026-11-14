@@ -58,7 +58,12 @@ The GitHub Pages prototype implements these decisions in a simpler form: the fou
 
 ## Design (UI/UX)
 
-Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: "El talento local nos conecta."
+Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: **"Si hay Curro, hay Kurro"** (a play on "curro", Spanish slang for a job). Use it exactly like that; the old "El talento local nos conecta" is retired.
+
+Logo (in `brand/logo/`): a "K" made of a deep-teal vertical bar, a dark dot and a pink chevron, all with rounded ends.
+- `kurro-logo-fondo-crema.png`: on cream `#F3E8DC`, pink `#F18AB5`. Used for the app icons in `icons/`.
+- `kurro-logo-sin-fondo.png`: transparent background, stronger pink (about `#EC6AA0`). Use it on light backgrounds.
+- Icons are generated from the cream version; regenerate all of them (any, maskable, apple-touch, favicon) if the logo changes, and bump `CACHE` in `sw.js`.
 
 ### Palette
 
@@ -145,8 +150,7 @@ We already had a problem with Supabase generating a table with just an `id` and 
 
 ### Pending, to do once the architecture is in place
 
-- PWA setup (manifest, icons, service worker).
-- QR code pointing to the published web app.
+- PWA and QR are done for the current prototype: `manifest.webmanifest`, `sw.js` (network first, offline fallback; Supabase API never cached; bump `CACHE` when the shell file list changes), icons in `icons/` and the QR in `qr/` (points to https://ocxpke.github.io/kurro/). Redo the PWA with vite-plugin-pwa when the app moves to React.
 - Android build for Google Play. New personal Play Console accounts must run a closed test with at least 12 testers for 14 days before publishing, so plan about three weeks.
 
 ## Coordination between Claude sessions

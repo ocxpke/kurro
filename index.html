@@ -4,12 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2F6670" />
-  <title>kurro · El talento local nos conecta</title>
+  <title>kurro. · Si hay Curro, hay Kurro</title>
+  <meta name="description" content="Trabajos locales y profesionales de confianza en Marbella, con reseñas en los dos sentidos." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="icons/favicon-64.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="kurro" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=11" />
-  <link rel="stylesheet" href="themes.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="themes.css?v=14" />
   <script>
     // Theme: Algodón by default. Mode follows the device unless ?mode=light|dark is given.
     // Alternatives for comparison: ?theme=petroleo|salvia|crema
@@ -144,8 +152,14 @@
   <div class="toast" id="toast" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="config.js?v=11"></script>
-  <script src="db.js?v=11"></script>
-  <script src="app.js?v=11"></script>
+  <script src="config.js?v=14"></script>
+  <script src="db.js?v=14"></script>
+  <script src="app.js?v=14"></script>
+  <script>
+    // Installable app (PWA): register the service worker (HTTPS or localhost only)
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
+    }
+  </script>
 </body>
 </html>
