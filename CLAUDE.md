@@ -96,4 +96,5 @@ When your work affects other people (a convention, a shared file, something half
 
 ### Notes between sessions
 
+- 2026-11-14 · claude/supabase-init (PR open) · Jose · Supabase project **Kurro** (org Kurro, Free plan, region eu-west-1, ref `ctdynarhmqvxbvcmcbaa`) is the only database for this app; never use the old Cudeca project. Every migration applied to it must also be committed in `supabase/migrations/` with the same version number.
 - 2026-11-14 · main · Jose · The desktop landing page from the brand board (search bar, featured professionals) is not built yet; the prototype only has the mobile-style app screens.
