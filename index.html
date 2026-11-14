@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#006D77" />
-  <title>Kurro · Trabajo local con reseñas en ambos sentidos</title>
+  <meta name="theme-color" content="#175C68" />
+  <title>kurro · El talento local nos conecta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="themes.css" />
   <script>
-    // Optional theme: index.html?theme=bruma|arena|salvia|alba&mode=light|dark
+    // Optional theme: index.html?theme=algodon|petroleo|salvia|crema&mode=light|dark
     (function () {
       var p = new URLSearchParams(location.search), t = p.get('theme'), m = p.get('mode');
       if (!t) return;
@@ -23,8 +26,7 @@
     <!-- Sidebar (desktop) / bottom nav (mobile) -->
     <nav class="nav" aria-label="Navegación principal">
       <div class="brand">
-        <span class="brand-logo">K</span>
-        <span class="brand-name">Kurro</span>
+        <span class="brand-name">kurro<span class="brand-dot">.</span></span>
       </div>
       <button class="nav-item active" data-view="discover"><span class="ico">🔥</span><span>Descubrir</span></button>
       <button class="nav-item" data-view="matches"><span class="ico">💬</span><span>Matches</span><span class="badge-count" id="matchCount" hidden>0</span></button>
@@ -35,8 +37,7 @@
     <main class="main">
       <header class="topbar">
         <div class="brand brand-mobile">
-          <span class="brand-logo">K</span>
-          <span class="brand-name">Kurro</span>
+          <span class="brand-name">kurro<span class="brand-dot">.</span></span>
         </div>
         <div class="role-toggle" role="tablist" aria-label="Modo">
           <button class="role active" data-role="worker" role="tab">Busco trabajo</button>
