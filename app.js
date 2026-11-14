@@ -1063,7 +1063,7 @@ async function renderProfile() {
     $('#profilePanel').innerHTML = `
       <div class="profile-hero">
         <div class="avatar"><img src="icons/icon-192.png" alt="" width="56" height="56" style="border-radius:14px" /></div>
-        <div><h2>Únete a kurro.</h2><div>Trabajos y profesionales de tu zona</div></div>
+        <div><h2>Únete a kurro.</h2><div>Si hay Curro, hay Kurro</div></div>
       </div>
       <div class="guest-roles">
         <button class="item" data-signup="worker">

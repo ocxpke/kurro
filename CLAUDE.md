@@ -58,7 +58,7 @@ The GitHub Pages prototype implements these decisions in a simpler form: the fou
 
 ## Design (UI/UX)
 
-Brand: **kurro.** (lowercase wordmark, the final dot in pink). **Tagline: to be decided**; do not use "El talento local nos conecta" or invent a new one in the app until the team picks it.
+Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: **"Si hay Curro, hay Kurro"** (a play on "curro", Spanish slang for a job). Use it exactly like that; the old "El talento local nos conecta" is retired.
 
 Logo (in `brand/logo/`): a "K" made of a deep-teal vertical bar, a dark dot and a pink chevron, all with rounded ends.
 - `kurro-logo-fondo-crema.png`: on cream `#F3E8DC`, pink `#F18AB5`. Used for the app icons in `icons/`.
