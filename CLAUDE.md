@@ -26,15 +26,26 @@ Brand: **kurro.** (lowercase wordmark, the final dot in pink). Tagline: "El tale
 
 ### Palette
 
-| Role | Name | Hex | Use |
-|------|------|-----|-----|
-| Accent | Pink | `#F18AB5` | Main buttons, highlights, the logo dot |
-| Primary | Deep teal | `#175C68` | Active states, links, secondary buttons |
-| Background | Cream | `#F3E8DC` | Page background |
-| Text | Dark | `#382B30` | Main text, titles |
-| Support | Sage | `#A5B9A5` | Borders, soft backgrounds, details |
+Brand colors (logo, marketing, reference): pink `#F18AB5`, deep teal `#175C68`, cream `#F3E8DC`, dark `#382B30`, sage `#A5B9A5`.
 
-Accessibility: white text on pink `#F18AB5` fails contrast (about 2.4:1). Put dark text (`#382B30`) on pink buttons and tags.
+**The app UI uses the Algodón palette.** It is the official model to follow: a paler take on the brand colors, comfortable at night, at dawn and during the day. Every screen supports light and dark mode.
+
+| Token | Role | Light | Dark |
+|-------|------|-------|------|
+| `--bg` | Page background | `#FAF3F1` | `#1A1518` |
+| `--surface` | Cards, nav, inputs | `#FFFCFB` | `#241D21` |
+| `--primary` | Active states, links, secondary buttons | `#2F6670` | `#8FBFC6` |
+| `--on-primary` | Text on primary | `#FFFFFF` | `#0F1B1E` |
+| `--accent` | Main buttons, highlights, logo dot | `#EDA6C4` | `#D99BB6` |
+| `--on-accent` | Text on accent | `#382B30` | `#241419` |
+| `--accent-soft` | Pink tags | `#F8E3EC` | `#3D2731` |
+| `--warm-ink` | Text on `--accent-soft` | `#8A3A5E` | `#EDB8CF` |
+| `--sage` | Borders, details | `#BCCBBC` | `#6F806F` |
+| `--c-sage` / `--c-pink` / `--c-warm` | Soft backgrounds (cards, avatars, portfolio) | `#E3EAE2` / `#F7E1EA` / `#F2E7DD` | `#2A332B` / `#3A2630` / `#2F2721` |
+| `--ink` | Main text | `#382B30` | `#EDE2E6` |
+| `--muted` | Secondary text | `#6B5D63` | `#A8979E` |
+
+Accessibility: never put white text on pink. Use `--on-accent` (dark) on pink buttons and tags.
 
 ### Typography
 
@@ -43,10 +54,12 @@ Accessibility: white text on pink `#F18AB5` fails contrast (about 2.4:1). Put da
 
 ### How colors are applied in code
 
-- Never hardcode hex colors in components. Use the CSS tokens defined in `styles.css` (`--bg`, `--surface`, `--primary`, `--on-primary`, `--accent`, `--on-accent`, `--accent-soft`, `--warm-ink`, `--sage`, `--c-sage`, `--c-pink`, `--c-warm`, `--ink`, `--muted`).
-- `themes.css` holds pale variants for workers who use the app at night, at dawn or during the day: `algodon`, `petroleo`, `salvia` and `crema`, each with `light` and `dark` mode. Select one with `index.html?theme=<name>&mode=light|dark`. Without parameters, the brand defaults apply.
-- New themes must define every token and keep text contrast at WCAG AA (4.5:1).
+- Never hardcode hex colors in components. Use the tokens above, defined in `styles.css` (Algodón light) and `themes.css` (Algodón dark and alternatives).
+- By default the app uses Algodón and follows the device's light/dark setting. Force a mode with `index.html?mode=light|dark`.
+- `themes.css` also keeps the alternative themes `petroleo`, `salvia` and `crema` (`?theme=<name>`) for comparison only. Do not use them as a base for new work.
+- Any new screen must look right in both Algodón light and dark, with text contrast at WCAG AA (4.5:1).
 - `preview.html` shows every theme side by side.
+- After changing `styles.css`, `themes.css` or `app.js`, bump the `?v=N` number on their links in `index.html` so browsers do not keep old cached files.
 
 ## Tech stack
 
@@ -83,5 +96,4 @@ When your work affects other people (a convention, a shared file, something half
 
 ### Notes between sessions
 
-- 2026-11-14 · claude/cache-busting (PR #6, open) · Jose · Adds `?v=N` to the CSS and JS links in `index.html` so browsers do not mix old cached files after a deploy. If merged, bump `N` whenever `styles.css`, `themes.css` or `app.js` change.
 - 2026-11-14 · main · Jose · The desktop landing page from the brand board (search bar, featured professionals) is not built yet; the prototype only has the mobile-style app screens.

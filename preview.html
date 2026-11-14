@@ -28,17 +28,17 @@
   </header>
   <main id="grid"></main>
   <script>
-    var THEMES = { original: 'Marca', algodon: 'Algodón', petroleo: 'Petróleo', salvia: 'Salvia', crema: 'Crema' };
+    var THEMES = { algodon: 'Algodón (oficial)', petroleo: 'Petróleo', salvia: 'Salvia', crema: 'Crema' };
     var MODES = { all: 'Claro y oscuro', light: 'Claro', dark: 'Oscuro' };
     var filter = { theme: 'all', mode: 'all' };
     var grid = document.getElementById('grid');
 
     Object.keys(THEMES).forEach(function (t) {
-      (t === 'original' ? ['light'] : ['light', 'dark']).forEach(function (m) {
+      ['light', 'dark'].forEach(function (m) {
         var f = document.createElement('figure');
         f.dataset.theme = t; f.dataset.mode = m;
         f.innerHTML = '<figcaption>' + THEMES[t] + ' <small>' + (m === 'light' ? 'claro' : 'oscuro') + '</small></figcaption>' +
-          '<iframe src="' + (t === 'original' ? 'index.html' : 'index.html?theme=' + t + '&mode=' + m) + '"></iframe>';
+          '<iframe src="index.html?theme=' + t + '&mode=' + m + '"></iframe>';
         grid.appendChild(f);
       });
     });

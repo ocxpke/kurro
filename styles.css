@@ -1,19 +1,21 @@
-/* kurro · base styles. Brand palette: #F18AB5 #175C68 #F3E8DC #382B30 #A5B9A5
+/* kurro · base styles.
+   Official UI palette: Algodón (light here; dark in themes.css), derived from the brand palette
+   #F18AB5 #175C68 #F3E8DC #382B30 #A5B9A5.
    All colors come from the tokens below; themes.css overrides them per theme/mode. */
 :root {
-  --bg: #F3E8DC;          /* Cream: page background */
-  --surface: #FBF6F1;     /* Cards, nav, inputs */
-  --primary: #175C68;     /* Deep teal: titles, active states, links */
+  --bg: #FAF3F1;          /* Page background */
+  --surface: #FFFCFB;     /* Cards, nav, inputs */
+  --primary: #2F6670;     /* Teal: active states, links */
   --on-primary: #FFFFFF;
-  --accent: #F18AB5;      /* Brand pink: main buttons, highlights */
+  --accent: #EDA6C4;      /* Soft pink: main buttons, highlights */
   --on-accent: #382B30;   /* Dark text on pink (white on pink fails contrast) */
-  --accent-soft: #F9D9E6; /* Pink tint for tags */
-  --warm-ink: #8C2F59;    /* Text on --accent-soft */
-  --sage: #A5B9A5;        /* Sage: borders, secondary details */
-  --c-sage: #D5DFD4;      /* Soft backgrounds for cards / avatars */
-  --c-pink: #F7D3E2;
-  --c-warm: #EAD9C6;
-  --ink: #382B30;         /* Dark: main text */
+  --accent-soft: #F8E3EC; /* Pink tint for tags */
+  --warm-ink: #8A3A5E;    /* Text on --accent-soft */
+  --sage: #BCCBBC;        /* Borders, secondary details */
+  --c-sage: #E3EAE2;      /* Soft backgrounds for cards / avatars */
+  --c-pink: #F7E1EA;
+  --c-warm: #F2E7DD;
+  --ink: #382B30;         /* Main text */
   --muted: #6B5D63;
   --radius: 20px;
   --shadow: 0 10px 30px rgba(56, 43, 48, .12);

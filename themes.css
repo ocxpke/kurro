@@ -1,11 +1,12 @@
 /* kurro · pale themes (light + dark), derived from the brand palette
    #F18AB5 pink · #175C68 teal · #F3E8DC cream · #382B30 dark · #A5B9A5 sage.
    Activated with <html data-theme="..." data-mode="light|dark">.
-   Without data-theme, the brand defaults in styles.css are used. */
+   Algodón is the official palette: its light values are also the defaults in styles.css.
+   The other themes are kept as alternatives. */
 
 html[data-theme][data-mode="dark"] { color-scheme: dark; --shadow: 0 10px 30px rgba(0, 0, 0, .35); }
 
-/* ---------- Algodón: pale pink, the softest take on the brand ---------- */
+/* ---------- Algodón (official): pale pink, the softest take on the brand ---------- */
 html[data-theme="algodon"][data-mode="light"] {
   --bg: #FAF3F1; --surface: #FFFCFB; --primary: #2F6670; --on-primary: #FFFFFF;
   --accent: #EDA6C4; --on-accent: #382B30; --accent-soft: #F8E3EC; --warm-ink: #8A3A5E;
