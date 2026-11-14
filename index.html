@@ -6,6 +6,17 @@
   <meta name="theme-color" content="#006D77" />
   <title>Kurro · Trabajo local con reseñas en ambos sentidos</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="themes.css" />
+  <script>
+    // Optional theme: index.html?theme=bruma|arena|salvia|alba&mode=light|dark
+    (function () {
+      var p = new URLSearchParams(location.search), t = p.get('theme'), m = p.get('mode');
+      if (!t) return;
+      var root = document.documentElement;
+      root.dataset.theme = t;
+      root.dataset.mode = m || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    })();
+  </script>
 </head>
 <body>
   <div class="app">

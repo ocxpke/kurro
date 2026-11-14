@@ -1,0 +1,93 @@
+/* Kurro · pale themes (light + dark)
+   Activated with <html data-theme="..." data-mode="light|dark">.
+   Without data-theme the original look in styles.css is kept. */
+
+/* ---------- Bruma: pale teal, the closest to the original palette ---------- */
+html[data-theme="bruma"][data-mode="light"] {
+  --alice: #F3F7F8; --white: #FCFEFE; --teal: #3B7A80; --aqua: #BCD9D5; --almond: #F6E7E0;
+  --tangerine: #C98C74; --c3: #EBC9BB; --ink: #22383C; --muted: #566C70;
+  --on-primary: #FFFFFF; --on-accent: #2B1A13; --warm-ink: #864731;
+}
+html[data-theme="bruma"][data-mode="dark"] {
+  --alice: #10181A; --white: #192326; --teal: #86B9B9; --aqua: #2B4547; --almond: #382C28;
+  --tangerine: #C4927E; --c3: #4A3530; --ink: #D3E0E1; --muted: #93A7AA;
+  --on-primary: #0E191B; --on-accent: #1B110D; --warm-ink: #E6BFAE;
+}
+
+/* ---------- Arena: warm sand, terracotta as main color ---------- */
+html[data-theme="arena"][data-mode="light"] {
+  --alice: #FAF5F1; --white: #FFFCFA; --teal: #93573F; --aqua: #EAD9CF; --almond: #F5E6DD;
+  --tangerine: #6E9C97; --c3: #D9C2B4; --ink: #3A2922; --muted: #73625A;
+  --on-primary: #FFFFFF; --on-accent: #10201E; --warm-ink: #7E4A35;
+}
+html[data-theme="arena"][data-mode="dark"] {
+  --alice: #191412; --white: #231C19; --teal: #D8A790; --aqua: #3A2E29; --almond: #352B26;
+  --tangerine: #8DB5B0; --c3: #46362F; --ink: #EBDCD3; --muted: #A8968D;
+  --on-primary: #1E130E; --on-accent: #0F1B1A; --warm-ink: #E9C1AE;
+}
+
+/* ---------- Salvia: soft sage green ---------- */
+html[data-theme="salvia"][data-mode="light"] {
+  --alice: #F2F6F3; --white: #FBFCFB; --teal: #44786A; --aqua: #C6DDD3; --almond: #F3E8E0;
+  --tangerine: #C59580; --c3: #E5CEC2; --ink: #23352E; --muted: #5A6D65;
+  --on-primary: #FFFFFF; --on-accent: #2A1A13; --warm-ink: #82493A;
+}
+html[data-theme="salvia"][data-mode="dark"] {
+  --alice: #111714; --white: #1A221E; --teal: #8EC0AE; --aqua: #293D35; --almond: #352C27;
+  --tangerine: #C99C88; --c3: #45362F; --ink: #D5E2DB; --muted: #93A59C;
+  --on-primary: #0E1A15; --on-accent: #1B120E; --warm-ink: #E4C2B2;
+}
+
+/* ---------- Alba: very soft, warm light with little blue (night/dawn shifts) ---------- */
+html[data-theme="alba"][data-mode="light"] {
+  --alice: #FBF5EF; --white: #FFFAF6; --teal: #3F6E71; --aqua: #D3E4E0; --almond: #FAE5DA;
+  --tangerine: #D29E88; --c3: #F0D3C5; --ink: #33302D; --muted: #69625D;
+  --on-primary: #FFFFFF; --on-accent: #2E1C14; --warm-ink: #864B33;
+}
+html[data-theme="alba"][data-mode="dark"] {
+  --alice: #17110E; --white: #211915; --teal: #D4A68E; --aqua: #33302B; --almond: #3A2B24;
+  --tangerine: #A9C5BF; --c3: #45332B; --ink: #E6D6CA; --muted: #A49185;
+  --on-primary: #1D130E; --on-accent: #12191A; --warm-ink: #EBC4B0;
+}
+
+/* ---------- Shared overrides for any theme ---------- */
+html[data-theme] { color-scheme: light; }
+html[data-theme][data-mode="dark"] { color-scheme: dark; }
+
+/* Text on primary / accent backgrounds */
+html[data-theme] .role.active,
+html[data-theme] .rtab.active,
+html[data-theme] .btn,
+html[data-theme] .act-yes { color: var(--on-primary); }
+html[data-theme] .btn.ghost { color: var(--teal); }
+html[data-theme] .btn.warm,
+html[data-theme] .tag-urgent,
+html[data-theme] #urgentChip.active,
+html[data-theme] .badge-count { color: var(--on-accent); }
+
+html[data-theme] .brand-logo,
+html[data-theme] .profile-hero {
+  background: linear-gradient(135deg, var(--teal), color-mix(in srgb, var(--teal) 78%, var(--aqua)));
+  color: var(--on-primary);
+}
+html[data-theme] .profile-hero h2,
+html[data-theme] .profile-hero .stars { color: var(--on-primary) !important; background: none !important; }
+html[data-theme] .profile-hero .avatar { background: color-mix(in srgb, var(--on-primary) 18%, transparent); }
+
+html[data-theme] .badge.warm,
+html[data-theme] .dir { color: var(--warm-ink); }
+html[data-theme] .card-hero .score { background: var(--white); color: var(--teal); }
+html[data-theme] .rate-stars button { color: var(--muted); }
+html[data-theme] .rate-stars button.on { color: var(--tangerine); }
+html[data-theme] textarea { background: var(--white); color: var(--ink); border-color: var(--aqua); }
+html[data-theme] .toast { background: var(--ink); color: var(--white); }
+html[data-theme] .modal-backdrop { background: rgba(0, 0, 0, .45); }
+html[data-theme][data-mode="dark"] .card,
+html[data-theme][data-mode="dark"] .act { box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+
+/* The mockup paints card / avatar backgrounds with fixed hex values: remap them */
+html[data-theme] [style*="#83C5BE"] { background: var(--aqua) !important; }
+html[data-theme] [style*="#FFDDD2"] { background: var(--almond) !important; }
+html[data-theme] [style*="#E29578"] { background: var(--c3) !important; }
+html[data-theme] [style*="#006D77"] { background: var(--teal) !important; }
+html[data-theme] [style*="#EDF6F9"] { background: var(--alice) !important; }
