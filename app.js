@@ -120,6 +120,9 @@ const state = {
   matches: { worker: [], company: [] },
   rtab: 'received',
   chats: {},
+  liveDeck: [],      // cards loaded from Supabase
+  liveMatches: [],
+  chatPoll: null,
   ads: [{ title: 'Camarero/a de sala', sector: 'Hostelería y Gastronomía', meta: '3 días · 14 €/h', urgent: true, interested: 4 }],
   // Availability for the current month: weekends off, a few booked days, the rest free
   cal: Object.fromEntries(Array.from({ length: 30 }, (_, i) => {
@@ -136,8 +139,69 @@ const isCompany = (x) => !x.portfolio;
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const reviewers = (company) => (company ? 'profesionales' : 'empresas');
 
+/* ---------- Live data (Supabase) ----------
+ * With a key in config.js and a signed-in user, the screens read and write the database
+ * through db.js. Otherwise they use the demo data above. */
+const live = () => !!(KDB.enabled && KDB.me && KDB.me.details);
+const CAT_LOOK = {
+  'hosteleria-gastronomia': { offer: '🍽️', worker: '🧑‍🍳', bg: 'var(--c-warm)' },
+  'artesania': { offer: '🏺', worker: '🧑‍🎨', bg: 'var(--c-sage)' },
+  'bienestar-emocional': { offer: '🧘', worker: '🧘‍♀️', bg: 'var(--c-pink)' },
+  'obras-reformas': { offer: '🏗️', worker: '👷', bg: 'var(--c-warm)' },
+};
+const look = (catId) => CAT_LOOK[KDB.categorySlug(catId)] || { offer: '📌', worker: '🙂', bg: 'var(--c-sage)' };
+const euros = (cents) => `${(cents / 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`;
+const dayLabel = (iso) => {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toDateString() === new Date().toDateString() ? 'hoy' : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+};
+
+// Rating fields the cards expect, from the profile_ratings / profile_criterion_ratings views
+function ratingFields(r, reviews, company) {
+  const count = r ? Number(r.review_count) : 0;
+  const dist = [5, 4, 3, 2, 1].map((n) => (count ? Math.round(100 * Number(r['stars_' + n]) / count) : 0));
+  return {
+    rating: r ? Number(r.rating) : 0, count, repeat: r ? r.repeat_pct : 0, dist,
+    cats: (r && r.cats) || {},
+    reviews: reviews.slice(0, 5).map((v) => ({ stars: v.overall, text: esc(v.comment || 'Sin comentario.'), who: company ? 'Profesional' : 'Empresa' })),
+  };
+}
+
+function offerCard({ ad, company, rating, reviews }) {
+  const l = look(ad.category_id);
+  const pay = [ad.accepts_card && 'Pago seguro', ad.accepts_cash && 'Pago en efectivo', ad.accepts_bizum && 'Bizum'].filter(Boolean);
+  const budget = euros(ad.budget_cents) + (ad.budget_type === 'hourly' ? '/h' : '');
+  return {
+    id: 'ad:' + ad.id, dbId: ad.id, partnerId: ad.company_id, emoji: l.offer, bg: l.bg,
+    name: esc(company.legal_name || 'Empresa'),
+    sub: esc([ad.title, dayLabel(ad.starts_on), ad.duration_hours && `${Number(ad.duration_hours)} h`, budget].filter(Boolean).join(' · ')),
+    sector: KDB.categoryName(ad.category_id), urgent: ad.is_urgent,
+    badges: pay.length ? pay : ['Verificado'], quote: `“${esc(ad.description.slice(0, 110))}”`,
+    ...ratingFields(rating, reviews, true),
+  };
+}
+
+function workerCard({ worker, profile, categoryIds, portfolio, rating, reviews }) {
+  const l = look(categoryIds[0]);
+  return {
+    id: 'w:' + worker.profile_id, dbId: worker.profile_id, partnerId: worker.profile_id, emoji: l.worker, bg: l.bg,
+    name: esc(profile.display_name || 'Profesional'),
+    sub: esc([worker.headline, worker.years_experience != null && `${worker.years_experience} años exp.`,
+      worker.hourly_rate_cents && `${euros(worker.hourly_rate_cents)}/h`, profile.city].filter(Boolean).join(' · ')),
+    sector: KDB.categoryName(categoryIds[0]), urgent: worker.available_today,
+    badges: worker.available_today ? ['Disponible hoy'] : ['Nuevo en Kurro'],
+    quote: worker.bio ? `“${esc(worker.bio.slice(0, 110))}”` : '“Aún sin descripción.”',
+    portfolio: portfolio.length ? portfolio.slice(0, 6).map(() => '📷') : [l.worker],
+    ...ratingFields(rating, reviews, false),
+  };
+}
+
 // Compact rating block for swipe cards
 function ratingStripHTML(x) {
+  if (!x.count) {
+    return `<div class="rating-strip"><span class="rating-num">—</span>
+      <span class="rating-meta">${starsHTML(0)}<small>Aún sin reseñas verificadas</small></span></div>`;
+  }
   return `<div class="rating-strip">
     <span class="rating-num">${x.rating.toFixed(1)}</span>
     <span class="rating-meta">${starsHTML(x.rating)}
@@ -149,6 +213,9 @@ function ratingStripHTML(x) {
 
 // Full rating summary for profiles: score, distribution and category scores
 function ratingSummaryHTML(x, company) {
+  if (!x.count) {
+    return `<p class="trust"><span>✔</span><span>Todavía no tiene reseñas. Solo puede opinar quien haya trabajado ${company ? 'con esta empresa' : 'con este profesional'}, y las reseñas se publican cuando las dos partes han valorado.</span></p>`;
+  }
   return `<div class="rating-summary">
     <div class="rs-score"><b>${x.rating.toFixed(1)}</b>${starsHTML(x.rating)}<small>${x.count} reseñas de ${reviewers(company)}</small></div>
     <div class="rs-bars">${x.dist.map((pct, i) => `<div class="rs-row"><span>${5 - i}</span><div class="bar"><i style="width:${pct}%"></i></div><span>${pct} %</span></div>`).join('')}</div>
@@ -157,9 +224,22 @@ function ratingSummaryHTML(x, company) {
   <p class="trust"><span>✔</span><span>Reseñas anónimas y verificadas: solo opina quien ha trabajado ${company ? 'con esta empresa' : 'con este profesional'}. <b>${x.repeat} % repetiría.</b></span></p>`;
 }
 
+const source = () => (live() ? state.liveDeck : state.role === 'worker' ? OFFERS : WORKERS);
+const findItem = (id) => [...state.liveDeck, ...OFFERS, ...WORKERS].find((x) => x.id === id);
+
+// Reload the swipe deck from the database (live mode only)
+async function loadLiveDeck() {
+  if (!live()) return;
+  try {
+    state.liveDeck = KDB.me.role === 'worker'
+      ? (await KDB.discoverAds()).map(offerCard)
+      : (await KDB.discoverWorkers()).map(workerCard);
+  } catch (e) { dbError(e); state.liveDeck = []; }
+  renderDeck();
+}
+
 function pool() {
-  const src = state.role === 'worker' ? OFFERS : WORKERS;
-  return src.filter((x) =>
+  return source().filter((x) =>
     !state.seen.has(x.id) &&
     (!state.urgent || x.urgent) &&
     (state.sector === 'all' || x.sector === state.sector));
@@ -173,8 +253,8 @@ function renderDeck() {
   if (!items.length) {
     deck.innerHTML = `<div class="empty"><div><div style="font-size:3rem">🌊</div>
       <p>No hay más ${state.role === 'worker' ? 'ofertas' : 'profesionales'} con estos filtros.</p>
-      <button class="btn" id="resetDeck">Volver a empezar</button></div></div>`;
-    $('#resetDeck').onclick = () => { state.seen.clear(); renderDeck(); };
+      <button class="btn" id="resetDeck">${live() ? 'Buscar de nuevo' : 'Volver a empezar'}</button></div></div>`;
+    $('#resetDeck').onclick = () => { state.seen.clear(); live() ? loadLiveDeck() : renderDeck(); };
     return;
   }
   // Render top card last so it sits on top
@@ -240,12 +320,21 @@ function swipe(dir) {
   const card = $('#deck .card:last-child');
   if (!card) return;
   const id = card.dataset.id;
-  const item = [...OFFERS, ...WORKERS].find((x) => x.id === id);
+  const item = findItem(id);
   card.style.transform = `translate(${dir === 'right' ? 600 : -600}px, 40px) rotate(${dir === 'right' ? 30 : -30}deg)`;
   card.style.opacity = '0';
   state.seen.add(id);
 
-  if (dir === 'right') {
+  if (live()) {
+    // Saved as an interest; the database creates the match when both sides liked
+    KDB.decide({ partnerId: item.partnerId, adId: id.startsWith('ad:') ? item.dbId : null, liked: dir === 'right' })
+      .then((matched) => {
+        if (dir !== 'right') return;
+        toast(matched ? `🎉 ¡Match con ${item.name}!` : '👍 Interés enviado');
+        if (matched) refreshMatchCount();
+      })
+      .catch(dbError);
+  } else if (dir === 'right') {
     // En el mockup, simulamos que la otra parte también hace "match" con probabilidad alta
     if (Math.random() < 0.7) {
       state.matches[state.role].unshift(item);
@@ -291,9 +380,35 @@ function reviewHTML(r) {
 }
 
 /* ---------- Matches ---------- */
-function renderMatches() {
+// Matches from the database, shaped like the demo items so the same list and chat work
+async function loadLiveMatches() {
+  const worker = KDB.me.role === 'worker';
+  return (await KDB.matches()).map((m) => {
+    const l = look(m.details.category_id);
+    return {
+      id: 'm:' + m.match.id, matchId: m.match.id, emoji: worker ? l.offer : l.worker, bg: l.bg,
+      name: esc(worker ? (m.details.legal_name || m.profile.display_name || 'Empresa') : (m.profile.display_name || 'Profesional')),
+      sub: esc((m.ad && m.ad.title) || m.details.headline || 'Match'),
+      portfolio: worker ? undefined : [],
+      ...ratingFields(m.rating, [], worker),
+    };
+  });
+}
+
+async function refreshMatchCount() {
+  if (!live()) return updateMatchCount();
+  try { state.liveMatches = await loadLiveMatches(); } catch (e) { return dbError(e); }
+  const n = state.liveMatches.length, el = $('#matchCount');
+  el.textContent = n; el.hidden = n === 0;
+}
+
+async function renderMatches() {
   const list = $('#matchList');
-  const m = state.matches[state.role];
+  if (live()) {
+    list.innerHTML = '<li class="muted">Cargando…</li>';
+    await refreshMatchCount();
+  }
+  const m = live() ? state.liveMatches : state.matches[state.role];
   if (!m.length) {
     list.innerHTML = `<li class="muted">Aún no tienes matches. Ve a <b>Descubrir</b> y desliza a la derecha.</li>`;
     return;
@@ -309,10 +424,15 @@ function renderMatches() {
 }
 
 /* ---------- Chat empresa ↔ profesional ---------- */
-function openChat(x) {
+async function openChat(x) {
   const company = isCompany(x);
   const job = company ? x.sub.split(' · ')[0] : 'el servicio';
-  if (!state.chats[x.id]) {
+  clearInterval(state.chatPoll);
+  if (x.matchId) {
+    try {
+      state.chats[x.id] = (await KDB.messages(x.matchId)).map((m) => ({ me: m.sender_id === KDB.me.id, text: m.body }));
+    } catch (e) { return dbError(e); }
+  } else if (!state.chats[x.id]) {
     state.chats[x.id] = [{ me: false, text: company
       ? `¡Hola! Hemos visto tu perfil. ¿Sigues disponible para "${job}"?`
       : '¡Hola! Me interesa trabajar con vosotros. ¿Qué fechas necesitáis?' }];
@@ -340,10 +460,24 @@ function openChat(x) {
   $('#chatDeal').onclick = () => {
     if (company) { closeModal(); toast('✅ Propuesta aceptada. La empresa elige el pago.'); } else openPay(x);
   };
-  $('#chatForm').onsubmit = (e) => {
+  if (x.matchId) {
+    if (!msgs.length) log.innerHTML = '<p class="muted">Aún no hay mensajes. ¡Saluda!</p>';
+    // Check for new messages every few seconds while this chat is open
+    state.chatPoll = setInterval(async () => {
+      const open = $('#chatLog');
+      if ($('#modal').hidden || !open || open.dataset.chatId !== x.id) return clearInterval(state.chatPoll);
+      const fresh = await KDB.messages(x.matchId).catch(() => null);
+      if (fresh && fresh.length !== msgs.length) openChat(x);
+    }, 4000);
+  }
+  $('#chatForm').onsubmit = async (e) => {
     e.preventDefault();
     const text = e.target.msg.value.trim();
     if (!text) return;
+    if (x.matchId) {
+      try { await KDB.sendMessage(x.matchId, text); } catch (err) { return dbError(err); }
+      return openChat(x);
+    }
     msgs.push({ me: true, text });
     openChat(x);
     setTimeout(() => {
@@ -387,7 +521,20 @@ function openPay(x) {
 }
 
 /* ---------- Publicar anuncio (empresa) ---------- */
-function renderAds() {
+async function renderAds() {
+  if (live()) {
+    let ads;
+    try { ads = await KDB.myAds(); } catch (e) { return dbError(e); }
+    const status = { open: 'Abierta', filled: 'Cubierta', closed: 'Cerrada', cancelled: 'Cancelada' };
+    $('#adList').innerHTML = ads.length ? ads.map((a) => `
+      <li class="item">
+        <div class="item-main"><strong>${esc(a.title)}</strong><small>${esc([KDB.categoryName(a.category_id), dayLabel(a.starts_on),
+          a.duration_hours && `${Number(a.duration_hours)} h`, euros(a.budget_cents) + (a.budget_type === 'hourly' ? '/h' : '')].filter(Boolean).join(' · '))}</small>
+          <small class="item-score">${a.matches} match${a.matches === 1 ? '' : 'es'}</small></div>
+        ${a.is_urgent && a.status === 'open' ? '<span class="badge warm">⚡ Hoy</span>' : `<span class="badge">${status[a.status]}</span>`}
+      </li>`).join('') : '<li class="muted">Todavía no has publicado ningún anuncio.</li>';
+    return;
+  }
   $('#adList').innerHTML = state.ads.map((a) => `
     <li class="item">
       <div class="item-main"><strong>${esc(a.title)}</strong><small>${esc(a.sector)}${a.meta ? ' · ' + esc(a.meta) : ''}</small>
@@ -396,7 +543,38 @@ function renderAds() {
     </li>`).join('');
 }
 
+// "15 €/h" -> { cents: 1500, type: 'hourly' }; "120 €" -> fixed
+function parseBudget(text) {
+  const n = parseFloat(String(text).replace(',', '.').replace(/[^\d.]/g, ''));
+  return { cents: Math.round(n * 100), type: /\/\s*h|hora/i.test(text) ? 'hourly' : 'fixed' };
+}
+
+async function publishLiveAd(form) {
+  const f = new FormData(form);
+  const title = f.get('title').trim();
+  const description = f.get('desc').trim();
+  const budget = parseBudget(f.get('budget'));
+  const hours = parseFloat(String(f.get('duration')).replace(',', '.'));
+  const day = f.get('date') || new Date().toISOString().slice(0, 10);
+  if (title.length < 3) return toast('El título necesita al menos 3 letras');
+  if (description.length < 10) return toast('Añade una descripción (mínimo 10 caracteres)');
+  if (!(budget.cents > 0)) return toast('Indica un presupuesto, por ejemplo 15 €/h');
+  if (!f.get('paySecure') && !f.get('payCash')) return toast('Elige al menos una forma de pago');
+  try {
+    await KDB.publishAd({
+      title, description, category_id: KDB.categoryId(f.get('sector')),
+      starts_on: day, ends_on: day, duration_hours: hours > 0 ? hours : null,
+      budget_cents: budget.cents, budget_type: budget.type, is_urgent: f.get('urgent') === 'on',
+      accepts_card: !!f.get('paySecure'), accepts_cash: !!f.get('payCash'),
+    });
+  } catch (e) { return dbError(e); }
+  form.reset();
+  renderAds();
+  toast('📣 Anuncio publicado');
+}
+
 function publishAd(form) {
+  if (live()) return publishLiveAd(form);
   const f = new FormData(form);
   const title = f.get('title').trim();
   if (!title) return;
@@ -415,20 +593,44 @@ function publishAd(form) {
 }
 
 /* ---------- Agenda de disponibilidad (profesional) ---------- */
+async function renderLiveCalendar() {
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+  let rows;
+  try { rows = await KDB.monthAvailability(y, mo); } catch (e) { return dbError(e); }
+  const toUi = { free: 'free', booked: 'busy', unavailable: 'off' };
+  const days = new Date(y, mo + 1, 0).getDate();
+  const cal = Object.fromEntries(Array.from({ length: days }, (_, i) => [i + 1, toUi[rows[i + 1]] || 'free']));
+  const offset = (new Date(y, mo, 1).getDay() + 6) % 7; // Monday first
+  const month = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  drawCalendar({ cal, today: now.getDate(), offset, month: month[0].toUpperCase() + month.slice(1),
+    available: KDB.me.details.available_today,
+    onAvail: async () => { try { await KDB.setAvailableToday(!KDB.me.details.available_today); } catch (e) { return dbError(e); } renderLiveCalendar(); },
+    onDay: async (d) => {
+      try { await KDB.setDay(new Date(y, mo, d), cal[d] === 'free' ? 'unavailable' : null); } catch (e) { return dbError(e); }
+      renderLiveCalendar();
+    } });
+}
+
 function renderCalendar() {
+  if (live()) return renderLiveCalendar();
   const p = PROFILES.worker;
-  const today = 14;
+  drawCalendar({ cal: state.cal, today: 14, offset: 6, month: 'Noviembre 2026', available: p.available,
+    onAvail: () => { p.available = !p.available; renderCalendar(); },
+    onDay: (d) => { state.cal[d] = state.cal[d] === 'free' ? 'off' : 'free'; renderCalendar(); } });
+}
+
+function drawCalendar({ cal, today, offset, month, available, onAvail, onDay }) {
   const label = { free: 'libre', busy: 'trabajo reservado', off: 'no disponible' };
   $('#calendarPanel').innerHTML = `
     <div class="item">
       <div class="item-main"><strong>⚡ Disponible hoy</strong><small>Las empresas te verán en el filtro de urgencia</small></div>
-      <button class="btn ${p.available ? '' : 'ghost'}" id="calAvail">${p.available ? 'Activo' : 'Inactivo'}</button>
+      <button class="btn ${available ? '' : 'ghost'}" id="calAvail">${available ? 'Activo' : 'Inactivo'}</button>
     </div>
     <div class="cal">
-      <div class="cal-head">Noviembre 2026</div>
+      <div class="cal-head">${month}</div>
       <div class="cal-grid">${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => `<span>${d}</span>`).join('')}
-        ${'<i></i>'.repeat(6)}
-        ${Object.entries(state.cal).map(([d, st]) => `<button class="day ${st} ${+d === today ? 'today' : ''}" data-day="${d}" aria-label="Día ${d}, ${label[st]}">${d}</button>`).join('')}
+        ${'<i></i>'.repeat(offset)}
+        ${Object.entries(cal).map(([d, st]) => `<button class="day ${st} ${+d === today ? 'today' : ''}" data-day="${d}" aria-label="Día ${d}, ${label[st]}">${d}</button>`).join('')}
       </div>
       <div class="legend">
         <span><i style="background:var(--c-sage)"></i>Libre</span>
@@ -436,16 +638,16 @@ function renderCalendar() {
         <span><i style="box-shadow:inset 0 0 0 1.5px var(--sage)"></i>No disponible</span>
       </div>
     </div>`;
-  $('#calAvail').onclick = () => { p.available = !p.available; renderCalendar(); };
+  $('#calAvail').onclick = onAvail;
   $$('.day', $('#calendarPanel')).forEach((b) => b.onclick = () => {
     const d = b.dataset.day;
-    if (state.cal[d] === 'busy') return toast('Ese día ya tienes un trabajo reservado');
-    state.cal[d] = state.cal[d] === 'free' ? 'off' : 'free';
-    renderCalendar();
+    if (cal[d] === 'busy') return toast('Ese día ya tienes un trabajo reservado');
+    onDay(d);
   });
 }
 
 function updateMatchCount() {
+  if (live()) return refreshMatchCount();
   const n = state.matches[state.role].length;
   const el = $('#matchCount');
   el.textContent = n;
@@ -453,8 +655,21 @@ function updateMatchCount() {
 }
 
 /* ---------- Reseñas ---------- */
-function renderReviews() {
+async function renderReviews() {
   const panel = $('#reviewPanel');
+  if (live()) {
+    if (state.rtab !== 'received') {
+      panel.innerHTML = '<p class="muted">Cuando un trabajo se complete, aquí podréis valoraros. Las reseñas se publican cuando las dos partes han valorado.</p>';
+      return;
+    }
+    let rep;
+    try { rep = await KDB.myReputation(); } catch (e) { return dbError(e); }
+    const dir = KDB.me.role === 'worker' ? 'Empresa → tú' : 'Profesional → empresa';
+    panel.innerHTML = rep.reviews.length
+      ? rep.reviews.map((r) => reviewHTML({ stars: r.overall, text: esc(r.comment || 'Sin comentario.'), who: dir.split(' ')[0], dir })).join('')
+      : '<p class="muted">Aún no tienes reseñas publicadas.</p>';
+    return;
+  }
   if (state.rtab === 'received') {
     panel.innerHTML = RECEIVED[state.role].map(reviewHTML).join('');
   } else {
@@ -489,20 +704,131 @@ function openRate(x) {
   };
 }
 
+/* ---------- Cuenta (Supabase Auth) ---------- */
+function accountHTML() {
+  if (!KDB.enabled) return '';
+  if (!KDB.me) {
+    return `<div class="item account">
+      <div class="item-main"><strong>Modo demo</strong><small>Estás viendo datos de ejemplo. Entra o crea tu cuenta para usar Kurro con datos reales.</small></div>
+      <button class="btn" data-auth>Entrar</button></div>`;
+  }
+  return `<div class="item account">
+    <div class="item-main"><strong>${esc(KDB.me.display_name)}</strong><small>${esc(KDB.me.email || '')} · cuenta de ${KDB.me.role === 'worker' ? 'profesional' : 'empresa'}</small></div>
+    <button class="btn ghost" data-logout>Salir</button></div>`;
+}
+
+function bindAccount(root) {
+  $$('[data-auth]', root).forEach((b) => b.onclick = () => openAuth('login'));
+  $$('[data-logout]', root).forEach((b) => b.onclick = async () => { await KDB.signOut(); afterAuth(); toast('Sesión cerrada'); });
+}
+
+function openAuth(mode) {
+  const signup = mode === 'signup';
+  $('#modalBody').innerHTML = `
+    <span class="kind">${signup ? 'Crear cuenta' : 'Entrar'}</span>
+    <h2>${signup ? 'Únete a kurro.' : 'Hola de nuevo'}</h2>
+    <form class="form" id="authForm">
+      ${signup ? `
+        <fieldset><legend>Soy…</legend>
+          <label class="check"><input type="radio" name="role" value="worker" checked /> Profesional: busco trabajos</label>
+          <label class="check"><input type="radio" name="role" value="company" /> Empresa: busco profesionales</label>
+        </fieldset>
+        <label>Nombre que verán los demás<input name="name" required minlength="2" maxlength="80" autocomplete="name" /></label>` : ''}
+      <label>Email<input type="email" name="email" required autocomplete="email" /></label>
+      <label>Contraseña<input type="password" name="password" required minlength="6" autocomplete="${signup ? 'new-password' : 'current-password'}" /></label>
+      <button class="btn" type="submit">${signup ? 'Crear cuenta' : 'Entrar'}</button>
+    </form>
+    <p class="muted" style="text-align:center">${signup ? '¿Ya tienes cuenta?' : '¿Eres nuevo?'}
+      <button class="link" id="authSwitch">${signup ? 'Entrar' : 'Crear cuenta'}</button></p>`;
+  openModal();
+  $('#authSwitch').onclick = () => openAuth(signup ? 'login' : 'signup');
+  $('#authForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target), btn = $('button[type="submit"]', e.target);
+    btn.disabled = true;
+    try {
+      if (signup) {
+        const r = await KDB.signUp({ email: f.get('email'), password: f.get('password'), role: f.get('role'), displayName: f.get('name').trim() });
+        if (r.needsConfirmation) { closeModal(); return toast('📧 Revisa tu correo para confirmar la cuenta'); }
+        await KDB.loadMe();
+      } else {
+        await KDB.signIn(f.get('email'), f.get('password'));
+      }
+      afterAuth();
+    } catch (err) { btn.disabled = false; dbError(err); }
+  };
+}
+
+// After sign-up the worker or company row is still missing: ask for its required field
+function openOnboarding() {
+  const worker = KDB.me.role === 'worker';
+  $('#modalBody').innerHTML = `
+    <span class="kind">Completa tu perfil</span>
+    <h2>${worker ? '¿A qué te dedicas?' : '¿Cómo se llama tu empresa?'}</h2>
+    <form class="form" id="onbForm">
+      <label>${worker ? 'Tu profesión en pocas palabras' : 'Nombre legal de la empresa'}
+        <input name="text" required minlength="2" maxlength="${worker ? 80 : 120}" placeholder="${worker ? 'Ej.: Cocinera · 6 años de experiencia' : 'Ej.: Hotel Puerto Banús S.L.'}" /></label>
+      <button class="btn" type="submit">Guardar</button>
+    </form>`;
+  openModal();
+  $('#onbForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try { await KDB.completeProfile(new FormData(e.target).get('text').trim()); } catch (err) { return dbError(err); }
+    afterAuth();
+  };
+}
+
+// Re-render everything for the current session (signed in, signed out or half-registered)
+function afterAuth() {
+  closeModal();
+  if (KDB.me && !KDB.me.details) return openOnboarding();
+  state.liveDeck = []; state.liveMatches = [];
+  if (live()) toast(`👋 Hola, ${KDB.me.display_name}`);
+  setRole(live() ? KDB.me.role : state.role);
+  loadLiveDeck();
+}
+
+function dbError(e) {
+  console.error(e);
+  const msg = String((e && e.message) || e);
+  const known = {
+    'Invalid login credentials': 'Email o contraseña incorrectos',
+    'User already registered': 'Ya existe una cuenta con ese email',
+    'Email not confirmed': 'Confirma tu email antes de entrar',
+  };
+  toast('⚠️ ' + (known[msg] || msg));
+}
+
 /* ---------- Perfil ---------- */
-function renderProfile() {
-  const p = PROFILES[state.role];
+async function liveProfile() {
+  const me = KDB.me, d = me.details, worker = me.role === 'worker';
+  const [rep, jobs] = await Promise.all([KDB.myReputation(), KDB.myJobCount()]);
+  const r = ratingFields(rep.rating, rep.reviews, !worker);
+  return {
+    emoji: worker ? '🧑‍🔧' : '🏢', name: esc(worker ? me.display_name : d.legal_name),
+    sub: esc([worker ? d.headline : 'Empresa', me.city].filter(Boolean).join(' · ')),
+    jobs, response: '—', available: d.available_today,
+    badges: [worker ? 'Profesional' : 'Empresa', 'Nuevo en Kurro'], portfolio: [worker ? '📷' : '🏢'], ...r,
+  };
+}
+
+async function renderProfile() {
   const company = state.role === 'company';
-  $('#profilePanel').innerHTML = `
+  let p = PROFILES[state.role];
+  if (live()) {
+    try { p = await liveProfile(); } catch (e) { return dbError(e); }
+  }
+  const reviews = live() ? p.reviews : RECEIVED[state.role];
+  $('#profilePanel').innerHTML = accountHTML() + `
     <div class="profile-hero">
       <div class="avatar">${p.emoji}</div>
       <div><h2>${p.name}</h2><div>${p.sub}</div>
-        <div class="hero-score">${starsHTML(p.rating)} <b>${p.rating.toFixed(1)}</b> · ${p.count} reseñas</div></div>
+        <div class="hero-score">${starsHTML(p.rating)} <b>${p.count ? p.rating.toFixed(1) : '—'}</b> · ${p.count} reseñas</div></div>
     </div>
     <div class="badges" style="margin-top:12px">${p.badges.map((b, i) => `<span class="badge ${i % 2 ? 'warm' : ''}">${b}</span>`).join('')}</div>
     <h4>${company ? 'Así valoran los profesionales a tu empresa' : 'Así te valoran las empresas'}</h4>
     ${ratingSummaryHTML(p, company)}
-    ${RECEIVED[state.role].slice(0, 2).map(reviewHTML).join('')}
+    ${reviews.slice(0, 2).map(reviewHTML).join('')}
     <button class="btn warm" id="allReviews" style="width:100%">Ver las ${p.count} reseñas</button>
     <div class="stats">
       <div class="stat"><b>${p.jobs}</b><small>${company ? 'Contrataciones' : 'Trabajos'}</small></div>
@@ -519,14 +845,19 @@ function renderProfile() {
         <button class="btn ${p.available ? '' : 'ghost'}" id="toggleAvail">${p.available ? 'Activo' : 'Inactivo'}</button>
       </div>
       <div class="item" style="margin-top:10px">
-        <div class="item-main"><strong>📅 Mi disponibilidad</strong><small>${Object.values(state.cal).filter((v) => v === 'free').length} días libres este mes</small></div>
+        <div class="item-main"><strong>📅 Mi disponibilidad</strong><small>${live() ? 'Marca tus días libres y no disponibles' : `${Object.values(state.cal).filter((v) => v === 'free').length} días libres este mes`}</small></div>
         <button class="btn warm" id="openCal">Ver agenda</button>
       </div>`}
     <h4>${company ? 'Nuestras instalaciones' : 'Mi portfolio'}</h4>
     <div class="portfolio">${p.portfolio.map((e, i) => `<div style="background:${COLORS[i % 3]}">${e}</div>`).join('')}</div>`;
   $('#allReviews').onclick = () => showView('reviews');
+  bindAccount($('#profilePanel'));
   const t = $('#toggleAvail');
-  if (t) t.onclick = () => { p.available = !p.available; renderProfile(); };
+  if (t) t.onclick = async () => {
+    if (live()) { try { await KDB.setAvailableToday(!p.available); } catch (e) { return dbError(e); } }
+    else p.available = !p.available;
+    renderProfile();
+  };
   const oc = $('#openCal');
   if (oc) oc.onclick = () => showView('calendar');
 }
@@ -543,6 +874,8 @@ function showView(name) {
 }
 
 function setRole(role) {
+  // A signed-in account has one role; the toggle only switches roles in demo mode
+  if (live() && role !== KDB.me.role) return toast(`Tu cuenta es de ${KDB.me.role === 'worker' ? 'profesional' : 'empresa'}`);
   state.role = role;
   state.seen.clear();
   $$('.role').forEach((b) => b.classList.toggle('active', b.dataset.role === role));
@@ -589,8 +922,9 @@ function init() {
   $('#btnYes').onclick = () => swipe('right');
   $('#btnInfo').onclick = () => {
     const c = $('#deck .card:last-child');
-    if (c) openDetail([...OFFERS, ...WORKERS].find((x) => x.id === c.dataset.id));
+    if (c) openDetail(findItem(c.dataset.id));
   };
+  $('#authBtn').onclick = () => (KDB.me ? showView('profile') : openAuth('login'));
 
   $('#modal').addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeModal(); });
   document.addEventListener('keydown', (e) => {
@@ -600,6 +934,23 @@ function init() {
   });
 
   renderDeck();
+  startLive();
+}
+
+// Connect to Supabase (if configured) and restore the session
+async function startLive() {
+  if (!KDB.enabled) return;
+  $('#authBtn').hidden = false;
+  try { await KDB.init(); } catch (e) { return dbError(e); }
+  KDB.onAuthChange(async () => { await KDB.loadMe(); updateAuthBtn(); });
+  updateAuthBtn();
+  if (KDB.me) afterAuth();
+}
+
+function updateAuthBtn() {
+  const b = $('#authBtn');
+  b.textContent = KDB.me ? '👤' : 'Entrar';
+  b.setAttribute('aria-label', KDB.me ? 'Mi cuenta' : 'Entrar o crear cuenta');
 }
 
 init();
