@@ -95,6 +95,17 @@ The app is a **PWA** (installable web app): one codebase for web and mobile, and
 - Reviews must never expose who wrote them to the reviewed party; enforce it in the database, not only in the UI.
 - Keep using the CSS tokens from `styles.css`; components must not hardcode colors.
 
+### Database design (important)
+
+We already had a problem with Supabase generating a table with just an `id` and a JSON column holding everything. **Do not do that.** It hides errors, breaks relations and makes queries and security rules unreliable.
+
+- Design a **relational schema**: one table per entity (for example profiles, workers, companies, offers, matches, reviews, messages), each with **typed columns** (`text`, `integer`, `numeric`, `boolean`, `timestamptz`, `uuid`...).
+- Link tables with **foreign keys**, and use `not null`, `unique`, `check` constraints and enums for fixed values (role, status, sector, rating 1 to 5).
+- **No `json`/`jsonb` column to store an entity's fields.** JSON is only acceptable for truly free-form, optional extra data that is never filtered or joined on, and only after asking the team.
+- Every schema change is a **SQL migration file** committed in `supabase/migrations/`. Do not create or change tables by hand in the Supabase dashboard.
+- Generate the TypeScript types from the schema (`supabase gen types typescript`) so the frontend matches the real columns.
+- If a tool or AI generates a schema, review it against these rules before applying it.
+
 ### Pending, to do once the architecture is in place
 
 - PWA setup (manifest, icons, service worker).
