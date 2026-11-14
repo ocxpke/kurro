@@ -23,7 +23,7 @@ const OFFERS = [
       { stars: 3, text: 'El turno se alargó sin avisar.', who: 'Friegaplatos' },
     ] },
   { id: 'o4', emoji: '🏺', bg: 'var(--c-sage)', name: 'Hotel Boutique Casco Antiguo', sub: 'Taller de cerámica para huéspedes · 2 h · 90 €', sector: 'Artesanía', urgent: false, rating: 4.8, count: 19, repeat: 96, dist: [84, 11, 5, 0, 0], cats: { 'Pago': 5.0, 'Trato': 4.8, 'Horarios': 4.7, 'Ambiente': 4.7 },
-    badges: ['Empleador recomendado', 'Pago seguro'], quote: '“Encargo claro y pagan puntual vía Kurro.”',
+    badges: ['Empleador recomendado', 'Pago puntual'], quote: '“Encargo claro y pagan puntual vía Kurro.”',
     reviews: [
       { stars: 5, text: 'Encargo claro y pago seguro.', who: 'Ceramista' },
     ] },
@@ -169,7 +169,7 @@ function ratingFields(r, reviews, company) {
 
 function offerCard({ ad, company, rating, reviews }) {
   const l = look(ad.category_id);
-  const pay = [ad.accepts_card && 'Pago seguro', ad.accepts_cash && 'Pago en efectivo', ad.accepts_bizum && 'Bizum'].filter(Boolean);
+  const pay = [ad.accepts_cash && 'Efectivo', ad.accepts_card && 'Tarjeta', ad.accepts_bizum && 'Bizum'].filter(Boolean);
   const budget = euros(ad.budget_cents) + (ad.budget_type === 'hourly' ? '/h' : '');
   return {
     id: 'ad:' + ad.id, dbId: ad.id, partnerId: ad.company_id, emoji: l.offer, bg: l.bg,
@@ -386,7 +386,7 @@ async function loadLiveMatches() {
   return (await KDB.matches()).map((m) => {
     const l = look(m.details.category_id);
     return {
-      id: 'm:' + m.match.id, matchId: m.match.id, emoji: worker ? l.offer : l.worker, bg: l.bg,
+      id: 'm:' + m.match.id, matchId: m.match.id, dbMatch: m.match, emoji: worker ? l.offer : l.worker, bg: l.bg,
       name: esc(worker ? (m.details.legal_name || m.profile.display_name || 'Empresa') : (m.profile.display_name || 'Profesional')),
       sub: esc((m.ad && m.ad.title) || m.details.headline || 'Match'),
       portfolio: worker ? undefined : [],
@@ -446,10 +446,10 @@ async function openChat(x) {
         <small class="item-score">${starsHTML(x.rating)} <b>${x.rating.toFixed(1)}</b> · ${x.count} reseñas</small></div>
     </div>
     <div class="chat-log" id="chatLog" data-chat-id="${x.id}">${msgs.map((m) => `<div class="bubble ${m.me ? 'me' : ''}">${esc(m.text)}</div>`).join('')}</div>
-    <div class="item proposal">
-      <div class="item-main"><strong>Propuesta de contratación</strong><small>${company ? x.sub : 'Servicio acordado en el chat'} · pago seguro o efectivo</small></div>
+    ${x.matchId ? '<div class="item proposal" id="jobBox"><div class="item-main"><small>Cargando propuesta…</small></div></div>' : `<div class="item proposal">
+      <div class="item-main"><strong>Propuesta de contratación</strong><small>${company ? x.sub : 'Servicio acordado en el chat'} · efectivo, tarjeta o Bizum</small></div>
       <button class="btn" id="chatDeal">${company ? 'Aceptar' : 'Contratar'}</button>
-    </div>
+    </div>`}
     <form class="chat-form" id="chatForm">
       <input name="msg" aria-label="Escribe un mensaje" placeholder="Escribe un mensaje" autocomplete="off" />
       <button class="btn" type="submit">Enviar</button>
@@ -457,17 +457,19 @@ async function openChat(x) {
   openModal();
   const log = $('#chatLog');
   log.scrollTop = log.scrollHeight;
-  $('#chatDeal').onclick = () => {
+  if ($('#chatDeal')) $('#chatDeal').onclick = () => {
     if (company) { closeModal(); toast('✅ Propuesta aceptada. La empresa elige el pago.'); } else openPay(x);
   };
   if (x.matchId) {
     if (!msgs.length) log.innerHTML = '<p class="muted">Aún no hay mensajes. ¡Saluda!</p>';
+    renderJobBox(x);
     // Check for new messages every few seconds while this chat is open
     state.chatPoll = setInterval(async () => {
       const open = $('#chatLog');
       if ($('#modal').hidden || !open || open.dataset.chatId !== x.id) return clearInterval(state.chatPoll);
       const fresh = await KDB.messages(x.matchId).catch(() => null);
-      if (fresh && fresh.length !== msgs.length) openChat(x);
+      if (fresh && fresh.length !== msgs.length) return openChat(x);
+      renderJobBox(x);
     }, 4000);
   }
   $('#chatForm').onsubmit = async (e) => {
@@ -488,7 +490,124 @@ async function openChat(x) {
   };
 }
 
-/* ---------- Contratación y pago (empresa) ---------- */
+/* ---------- Contratación y pago (Supabase) ----------
+ * The company proposes price, date and payment method in the chat; the professional accepts or
+ * rejects. After the job both sides confirm the payment (mock: no money moves) and the database
+ * marks the job completed, which unlocks the mutual review. */
+const PAY_METHODS = [
+  { value: 'cash', label: '💶 Efectivo', demo: 'Efectivo', help: 'En mano al terminar el trabajo.' },
+  { value: 'card', label: '💳 Tarjeta', demo: 'Tarjeta', help: 'Ejemplo: no se cobra nada en la app.' },
+  { value: 'bizum', label: '📱 Bizum', demo: 'Bizum', help: 'Ejemplo: al número que os paséis por el chat.' },
+];
+const PAY_LABEL = Object.fromEntries(PAY_METHODS.map((m) => [m.value, m.label]));
+const PAY_OPTIONS_HTML = (checked, live = false) => PAY_METHODS.map((m) => `
+    <label class="pay-opt"><input type="radio" name="pay" value="${live ? m.value : m.demo}" ${(live ? m.value : m.demo) === checked ? 'checked' : ''} />
+      <span><strong>${m.label}</strong><small>${m.help}</small></span></label>`).join('');
+const fmtWhen = (iso) => new Date(iso).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+async function renderJobBox(x) {
+  if (!$('#jobBox')) return;
+  let job, pay = null;
+  try {
+    job = (await KDB.jobsForMatch(x.matchId))[0];
+    if (job && job.status === 'accepted') pay = await KDB.paymentFor(job.id);
+  } catch (e) { return dbError(e); }
+  const box = $('#jobBox');
+  const open = $('#chatLog');
+  if (!box || !open || open.dataset.chatId !== x.id) return;
+  // Only redraw when something changed (the chat refreshes it every few seconds)
+  const sig = JSON.stringify([job && job.id, job && job.status, pay]);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+
+  const company = KDB.me.role === 'company';
+  if (!job || ['rejected', 'cancelled'].includes(job.status)) {
+    const prev = job ? `<small>La última propuesta fue ${job.status === 'rejected' ? 'rechazada' : 'cancelada'}.</small>` : '';
+    box.innerHTML = company
+      ? `<div class="item-main"><strong>Propuesta de contratación</strong><small>Envía fecha, horas, precio y forma de pago.</small>${prev}</div>
+         <button class="btn" data-job="propose">Proponer</button>`
+      : `<div class="item-main"><strong>Propuesta de contratación</strong><small>La empresa te enviará aquí la propuesta.</small>${prev}</div>`;
+  } else {
+    const terms = `${euros(job.price_cents)} · ${PAY_LABEL[job.payment_method]} · ${fmtWhen(job.starts_at)}`;
+    const mine = job.proposed_by === KDB.me.id;
+    if (job.status === 'proposed') {
+      box.innerHTML = `<div class="item-main"><strong>${mine ? 'Propuesta enviada' : 'Tienes una propuesta'}</strong><small>${terms}</small>
+          ${mine ? '<small>Esperando respuesta.</small>' : ''}</div>
+        ${mine ? '<button class="btn ghost" data-job="cancelled">Cancelar</button>'
+          : '<div class="job-actions"><button class="btn ghost" data-job="rejected">Rechazar</button><button class="btn" data-job="accepted">Aceptar</button></div>'}`;
+    } else if (job.status === 'accepted') {
+      const done = pay && pay[company ? 'company_confirmed_at' : 'worker_confirmed_at'];
+      box.innerHTML = `<div class="item-main"><strong>✅ Contratado</strong><small>${terms}</small>
+          <small>${done ? 'Has confirmado el pago. Falta la otra parte.' : 'Al terminar, confirmad el pago los dos (simulación, no se cobra nada).'}</small></div>
+        ${done ? '' : '<button class="btn" data-job="pay">Confirmar pago</button>'}`;
+    } else {
+      box.innerHTML = `<div class="item-main"><strong>🎉 Trabajo completado</strong><small>${terms}</small><small>Ya podéis valoraros.</small></div>
+        <button class="btn warm" data-job="review">Valorar</button>`;
+    }
+  }
+  $$('[data-job]', box).forEach((b) => b.onclick = async () => {
+    const action = b.dataset.job;
+    if (action === 'propose') return openPropose(x);
+    if (action === 'review') return goToPendingReviews();
+    b.disabled = true;
+    try {
+      if (action === 'pay') await KDB.confirmPayment(job);
+      else await KDB.setJobStatus(job.id, action);
+    } catch (e) { b.disabled = false; return dbError(e); }
+    toast({ accepted: '✅ Propuesta aceptada', rejected: 'Propuesta rechazada', cancelled: 'Propuesta cancelada', pay: '✅ Pago confirmado' }[action]);
+    renderJobBox(x);
+  });
+}
+
+function openPropose(x) {
+  clearInterval(state.chatPoll);
+  const today = new Date().toISOString().slice(0, 10);
+  $('#modalBody').innerHTML = `
+    <span class="kind">Propuesta de contratación</span>
+    <h2>${x.name}</h2>
+    <form class="form" id="proposeForm">
+      <div class="form-row">
+        <label>Fecha<input type="date" name="date" value="${today}" min="${today}" required /></label>
+        <label>Hora de inicio<input type="time" name="time" value="09:00" required /></label>
+      </div>
+      <div class="form-row">
+        <label>Horas<input type="number" name="hours" min="0.5" max="24" step="0.5" value="6" required /></label>
+        <label>Precio total (€)<input type="number" name="price" min="1" step="0.01" value="90" required /></label>
+      </div>
+      <fieldset><legend>Forma de pago</legend>${PAY_OPTIONS_HTML('cash', true)}</fieldset>
+      <p class="muted">Simulación: Kurro no cobra nada. Al terminar, los dos confirmáis el pago en la app.</p>
+      <div class="job-actions">
+        <button type="button" class="btn ghost" id="proposeBack">Volver</button>
+        <button class="btn" type="submit">Enviar propuesta</button>
+      </div>
+    </form>`;
+  openModal();
+  $('#proposeBack').onclick = () => openChat(x);
+  $('#proposeForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const start = new Date(`${f.get('date')}T${f.get('time')}`);
+    const hours = parseFloat(f.get('hours'));
+    const priceCents = Math.round(parseFloat(f.get('price')) * 100);
+    if (!(hours > 0) || !(priceCents > 0) || isNaN(start)) return toast('Revisa la fecha, las horas y el precio');
+    const end = new Date(start.getTime() + hours * 3600e3);
+    e.submitter && (e.submitter.disabled = true);
+    try {
+      await KDB.proposeJob(x.dbMatch, { priceCents, method: f.get('pay'), startsAt: start.toISOString(), endsAt: end.toISOString() });
+    } catch (err) { if (e.submitter) e.submitter.disabled = false; return dbError(err); }
+    toast('📨 Propuesta enviada');
+    openChat(x);
+  };
+}
+
+function goToPendingReviews() {
+  closeModal();
+  state.rtab = 'given';
+  $$('.rtab').forEach((t) => t.classList.toggle('active', t.dataset.rtab === 'given'));
+  showView('reviews');
+}
+
+/* ---------- Contratación y pago (empresa, modo demo) ---------- */
 function openPay(x) {
   // Example figures for the mockup: 6 h at 15 €/h and a 10 % service fee
   $('#modalBody').innerHTML = `
@@ -504,10 +623,8 @@ function openPay(x) {
       <div class="total"><span>Total</span><span>99 €</span></div>
     </div>
     <h4>Método de pago</h4>
-    <label class="pay-opt"><input type="radio" name="pay" value="Pago seguro" checked />
-      <span><strong>🔒 Pago seguro en la app</strong><small>Kurro retiene el importe y lo libera al profesional cuando confirmes el trabajo.</small></span></label>
-    <label class="pay-opt"><input type="radio" name="pay" value="Efectivo" />
-      <span><strong>💶 Efectivo</strong><small>Pagas en mano al terminar. Los dos confirmáis el pago en la app para poder valoraros.</small></span></label>
+    ${PAY_OPTIONS_HTML('Efectivo')}
+    <p class="muted">Simulación: Kurro no cobra nada. Al terminar, los dos confirmáis el pago en la app para poder valoraros.</p>
     <button class="btn" id="payOk" style="width:100%;margin-top:6px">Confirmar y contratar · 99 €</button>`;
   openModal();
   $('#payOk').onclick = () => {
@@ -559,13 +676,13 @@ async function publishLiveAd(form) {
   if (title.length < 3) return toast('El título necesita al menos 3 letras');
   if (description.length < 10) return toast('Añade una descripción (mínimo 10 caracteres)');
   if (!(budget.cents > 0)) return toast('Indica un presupuesto, por ejemplo 15 €/h');
-  if (!f.get('paySecure') && !f.get('payCash')) return toast('Elige al menos una forma de pago');
+  if (!f.get('payCard') && !f.get('payBizum') && !f.get('payCash')) return toast('Elige al menos una forma de pago');
   try {
     await KDB.publishAd({
       title, description, category_id: KDB.categoryId(f.get('sector')),
       starts_on: day, ends_on: day, duration_hours: hours > 0 ? hours : null,
       budget_cents: budget.cents, budget_type: budget.type, is_urgent: f.get('urgent') === 'on',
-      accepts_card: !!f.get('paySecure'), accepts_cash: !!f.get('payCash'),
+      accepts_card: !!f.get('payCard'), accepts_bizum: !!f.get('payBizum'), accepts_cash: !!f.get('payCash'),
     });
   } catch (e) { return dbError(e); }
   form.reset();
@@ -583,7 +700,7 @@ function publishAd(form) {
   state.ads.unshift({ title, sector: f.get('sector'), meta, urgent, interested: 0 });
   // The new ad also shows up as an offer for professionals in Descubrir
   const c = PROFILES.company;
-  const pay = [f.get('paySecure') && 'Pago seguro', f.get('payCash') && 'Pago en efectivo'].filter(Boolean);
+  const pay = [f.get('payCash') && 'Efectivo', f.get('payCard') && 'Tarjeta', f.get('payBizum') && 'Bizum'].filter(Boolean);
   OFFERS.unshift({ id: 'ad' + Date.now(), emoji: c.emoji, bg: 'var(--c-sage)', name: c.name, sub: [title, meta].filter(Boolean).join(' · '),
     sector: f.get('sector'), urgent, rating: c.rating, count: c.count, repeat: c.repeat, dist: c.dist, cats: c.cats,
     badges: ['Empleador recomendado', ...pay], quote: '“Trato muy correcto y horarios respetados.”', reviews: RECEIVED.company });
@@ -659,7 +776,22 @@ async function renderReviews() {
   const panel = $('#reviewPanel');
   if (live()) {
     if (state.rtab !== 'received') {
-      panel.innerHTML = '<p class="muted">Cuando un trabajo se complete, aquí podréis valoraros. Las reseñas se publican cuando las dos partes han valorado.</p>';
+      panel.innerHTML = '<p class="muted">Cargando…</p>';
+      let pending;
+      try { pending = await KDB.pendingReviews(); } catch (e) { return dbError(e); }
+      const items = pending.map((r) => {
+        const company = r.partner_role === 'company', l = look(r.details.category_id);
+        return { ...r, emoji: company ? l.offer : '🙂', bg: l.bg,
+          name: company ? (r.details.legal_name || r.profile.display_name || 'Empresa') : (r.profile.display_name || 'Profesional') };
+      });
+      panel.innerHTML = items.length ? `<ul class="list">${items.map((x, i) => `
+        <li class="item">
+          <div class="avatar" style="background:${x.bg}">${x.emoji}</div>
+          <div class="item-main"><strong>${esc(x.name)}</strong><small>Trabajo terminado · ${dayLabel(x.ended_at.slice(0, 10))}</small></div>
+          <button class="btn warm" data-rate="${i}">Valorar</button>
+        </li>`).join('')}</ul>`
+        : '<p class="muted">No tienes valoraciones pendientes. Cuando un trabajo se complete (los dos confirmáis el pago), podréis valoraros aquí. Las reseñas se publican cuando las dos partes han valorado.</p>';
+      $$('[data-rate]', panel).forEach((b) => b.onclick = () => openLiveRate(items[+b.dataset.rate]));
       return;
     }
     let rep;
@@ -682,6 +814,50 @@ async function renderReviews() {
       </li>`).join('')}</ul>` : '<p class="muted">No tienes valoraciones pendientes. ¡Gracias por mejorar el mercado laboral!</p>';
     $$('[data-rate]', panel).forEach((b) => b.onclick = () => openRate(p.find((x) => x.id === b.dataset.rate)));
   }
+}
+
+// Review with an overall score, one score per criterion and "¿repetirías?" (Supabase)
+function openLiveRate(x) {
+  const crits = KDB.criteria.filter((c) => c.target_role === x.partner_role);
+  const vals = {};
+  let repeat = true;
+  const starRow = (key, label) => `<div class="rate-stars" data-key="${key}" role="group" aria-label="${label}">${[1, 2, 3, 4, 5]
+    .map((n) => `<button type="button" data-n="${n}" aria-label="${n} de 5">★</button>`).join('')}</div>`;
+  $('#modalBody').innerHTML = `
+    <h2>Valora a ${esc(x.name)}</h2>
+    <p class="muted">Tu reseña es anónima y solo se publica cuando ambas partes han valorado.</p>
+    <h4>Valoración general</h4>
+    ${starRow('overall', 'Valoración general')}
+    ${crits.map((c) => `<div class="crit-row"><span>${esc(c.name)}</span>${starRow('c' + c.id, c.name)}</div>`).join('')}
+    <h4>¿Repetirías?</h4>
+    <div class="review-tabs"><button type="button" class="rtab active" data-rep="1">Sí</button><button type="button" class="rtab" data-rep="0">No</button></div>
+    <textarea maxlength="1000" placeholder="¿Cómo fue la experiencia?"></textarea>
+    <button class="btn" id="sendRate" style="width:100%;margin-top:12px">Enviar reseña</button>`;
+  openModal();
+  $$('#modalBody .rate-stars').forEach((row) => $$('button', row).forEach((b) => b.onclick = () => {
+    vals[row.dataset.key] = +b.dataset.n;
+    $$('button', row).forEach((s) => s.classList.toggle('on', +s.dataset.n <= vals[row.dataset.key]));
+  }));
+  $$('[data-rep]').forEach((b) => b.onclick = () => {
+    repeat = b.dataset.rep === '1';
+    $$('[data-rep]').forEach((o) => o.classList.toggle('active', o === b));
+  });
+  $('#sendRate').onclick = async (e) => {
+    if (!vals.overall) return toast('Elige una valoración general');
+    const missing = crits.filter((c) => !vals['c' + c.id]);
+    if (missing.length) return toast(`Puntúa también: ${missing.map((c) => c.name).join(', ')}`);
+    e.target.disabled = true;
+    try {
+      await KDB.submitReview({
+        jobId: x.job_id, overall: vals.overall, wouldRepeat: repeat,
+        comment: $('#modalBody textarea').value.trim(),
+        scores: crits.map((c) => ({ id: c.id, score: vals['c' + c.id] })),
+      });
+    } catch (err) { e.target.disabled = false; return dbError(err); }
+    closeModal();
+    renderReviews();
+    toast('✅ Reseña enviada. Se publicará cuando la otra parte también valore.');
+  };
 }
 
 function openRate(x) {
