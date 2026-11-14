@@ -115,7 +115,7 @@ The app is a **PWA** (installable web app): one codebase for web and mobile, and
 | Routing | **React Router** | Screens: Descubrir, Matches, Reseñas, Perfil |
 | Backend | **Supabase** | Postgres database, auth, file storage and realtime in one service, no server code to maintain |
 | Database | Supabase **Postgres** with Row Level Security | Users, profiles, offers, matches and reviews are relational; RLS keeps reviews anonymous and enforces who can read or write what |
-| Auth | Supabase Auth (email + Google) | Separate roles: worker (`worker`) and business (`company`) |
+| Auth | Supabase Auth (email and password only; Google sign-in was tried and dropped) | Separate roles: worker (`worker`) and business (`company`) |
 | Files | Supabase Storage | Portfolio photos and avatars |
 | Chat | Supabase Realtime | Messages between matched worker and business |
 | Distance (no maps) | PostGIS in Supabase | "a 2 km" from the worker's current position to ad locations. No maps in the app |
