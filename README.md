@@ -60,6 +60,18 @@ Reputation is built through a **bidirectional, verified and anonymous review sys
 - Advertising.
 - Potential commission on in-app payments.
 
+## Design (UI/UX)
+
+### Color palette
+
+| Swatch | Name | Hex |
+|--------|------|-----|
+| ![#006D77](https://placehold.co/24x24/006D77/006D77.png) | Stormy Teal | `#006D77` |
+| ![#83C5BE](https://placehold.co/24x24/83C5BE/83C5BE.png) | Pearl Aqua | `#83C5BE` |
+| ![#EDF6F9](https://placehold.co/24x24/EDF6F9/EDF6F9.png) | Alice Blue | `#EDF6F9` |
+| ![#FFDDD2](https://placehold.co/24x24/FFDDD2/FFDDD2.png) | Almond Silk | `#FFDDD2` |
+| ![#E29578](https://placehold.co/24x24/E29578/E29578.png) | Tangerine Dream | `#E29578` |
+
 ## Tech stack
 
 > _To be completed by the team._
