@@ -132,5 +132,5 @@ When your work affects other people (a convention, a shared file, something half
 
 ### Notes between sessions
 
-- 2026-11-14 · claude/product-decisions (PR pending) · Claude · New "Product decisions" section. `README.md` still describes the buy/sell marketplace and the prototype still has the old filters (Hostelería, Artesanía, Eventos); both need updating to match.
+- 2026-11-14 · claude/product-decisions (PR #10, open) · Claude · New "Product decisions" section. `README.md` still describes the buy/sell marketplace and the prototype still has the old filters (Hostelería, Artesanía, Eventos); both need updating to match.
 - 2026-11-14 · main · Jose · The desktop landing page from the brand board (search bar, featured professionals) is not built yet; the prototype only has the mobile-style app screens.
