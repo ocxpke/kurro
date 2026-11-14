@@ -1028,6 +1028,7 @@ function afterAuth() {
   closeModal();
   if (KDB.me && !KDB.me.details) return openOnboarding();
   state.liveDeck = []; state.liveMatches = [];
+  if (KDB.enabled) updateAuthBtn();
   if (live()) toast(`👋 Hola, ${KDB.me.display_name}`);
   if (guest()) state.seen.clear();
   setRole(live() ? KDB.me.role : state.role);
@@ -1139,6 +1140,8 @@ function showView(name) {
 }
 
 function setRole(role) {
+  // A signed-in account has one role, so the "Busco trabajo / Busco talento" switch is only for guests
+  $('.role-toggle').hidden = live();
   // A signed-in account has one role; the toggle only switches roles in demo mode
   if (live() && role !== KDB.me.role) return toast(`Tu cuenta es de ${KDB.me.role === 'worker' ? 'profesional' : 'empresa'}`);
   state.role = role;
