@@ -145,8 +145,7 @@ We already had a problem with Supabase generating a table with just an `id` and 
 
 ### Pending, to do once the architecture is in place
 
-- PWA setup (manifest, icons, service worker).
-- QR code pointing to the published web app.
+- PWA and QR are done for the current prototype: `manifest.webmanifest`, `sw.js` (network first, offline fallback; Supabase API never cached; bump `CACHE` when the shell file list changes), icons in `icons/` and the QR in `qr/` (points to https://ocxpke.github.io/kurro/). Redo the PWA with vite-plugin-pwa when the app moves to React.
 - Android build for Google Play. New personal Play Console accounts must run a closed test with at least 12 testers for 14 days before publishing, so plan about three weeks.
 
 ## Coordination between Claude sessions
