@@ -63,7 +63,43 @@ Accessibility: never put white text on pink. Use `--on-accent` (dark) on pink bu
 
 ## Tech stack
 
-Current prototype: plain HTML, CSS and JavaScript (no framework, no backend), published with GitHub Pages from `main` at https://ocxpke.github.io/kurro/. Fonts load from Google Fonts. The final stack is still to be decided: do not assume a framework or add dependencies without asking.
+### Current prototype
+
+Plain HTML, CSS and JavaScript (no framework, no backend), published with GitHub Pages from `main` at https://ocxpke.github.io/kurro/. Fonts load from Google Fonts. It is a clickable mockup with fake data; it will be replaced by the app below.
+
+### Target stack for the app
+
+The app is a **PWA** (installable web app): one codebase for web and mobile, and the base for the QR code and a later Android/Play Store build.
+
+| Layer | Choice | Why |
+|-------|--------|-----|
+| Frontend | **React + TypeScript + Vite** | Fast to build and to learn, typed, huge ecosystem |
+| Styling | **Plain CSS with the existing tokens** (`styles.css`, `themes.css`) | Keeps the Algodón design system as is; no UI library needed |
+| PWA | **vite-plugin-pwa** | Manifest, icons and service worker (install + offline) |
+| Routing | **React Router** | Screens: Descubrir, Matches, Reseñas, Perfil |
+| Backend | **Supabase** | Postgres database, auth, file storage and realtime in one service, no server code to maintain |
+| Database | Supabase **Postgres** with Row Level Security | Users, profiles, offers, matches and reviews are relational; RLS keeps reviews anonymous and enforces who can read or write what |
+| Auth | Supabase Auth (email + Google) | Separate roles: worker (`worker`) and business (`company`) |
+| Files | Supabase Storage | Portfolio photos and avatars |
+| Chat | Supabase Realtime | Messages between matched worker and business |
+| Maps / distance | Leaflet + OpenStreetMap | Free; "a 2 km" and local search |
+| Payments (later) | Stripe Connect | Marketplace payments with a platform commission |
+| Hosting | GitHub Pages for now; Vercel or Netlify if we need preview deploys per PR | Static build, free |
+| Android (later) | PWA wrapped as a Trusted Web Activity (Bubblewrap / PWABuilder); Capacitor only if native features are needed | Reuses the same web app |
+
+### Rules
+
+- Do not add other frameworks, UI libraries or backend services without asking the team.
+- Keep secrets out of the repo: Supabase keys go in a `.env` file that is not committed (commit a `.env.example` instead). Only the Supabase anon key may reach the browser; never the service role key.
+- Every table must have Row Level Security enabled before it holds real data.
+- Reviews must never expose who wrote them to the reviewed party; enforce it in the database, not only in the UI.
+- Keep using the CSS tokens from `styles.css`; components must not hardcode colors.
+
+### Pending, to do once the architecture is in place
+
+- PWA setup (manifest, icons, service worker).
+- QR code pointing to the published web app.
+- Android build for Google Play. New personal Play Console accounts must run a closed test with at least 12 testers for 14 days before publishing, so plan about three weeks.
 
 ## Coordination between Claude sessions
 
